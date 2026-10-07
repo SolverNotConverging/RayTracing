@@ -63,3 +63,10 @@ std::optional<double> intersect_plane(
 Vec3 reflected_direction(
     const Vec3 &incidentDirection,
     const Vec3 &unitNormal);
+
+// Returns the entry distance into the reception sphere, or 0 if already inside.
+// receiverPosition must be finite and radius must be finite and positive.
+std::optional<double> intersect_receiver(
+    const EMRay &ray,
+    const Vec3 &receiverPosition,
+    double radius);

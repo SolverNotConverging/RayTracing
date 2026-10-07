@@ -1,11 +1,11 @@
 #include "EMRay.hpp"
 
 namespace {
-void require_unit_normal(const Vec3 &normal) {
-    if (!normal.allFinite() || std::abs(normal.norm() - 1.0) > 1e-10) {
-        throw std::invalid_argument("Plane normal must be a unit vector");
+    void require_unit_normal(const Vec3 &normal) {
+        if (!normal.allFinite() || std::abs(normal.norm() - 1.0) > 1e-10) {
+            throw std::invalid_argument("Plane normal must be a unit vector");
+        }
     }
-}
 }
 
 std::optional<double> intersect_plane(
@@ -40,6 +40,13 @@ std::optional<double> intersect_plane(
 void EMRay::propagate(
     double distance,
     double refractiveIndex) {
+    if (!std::isfinite(distance) || distance < 0.0 ||
+        !std::isfinite(refractiveIndex) || refractiveIndex <= 0.0) {
+        throw std::invalid_argument("Distance must be finite and nonnegative; refractive index must be finite and positive");
+    }
+    if (distance == 0.0) {
+        return;
+    }
     const double deltaOPL =
             refractiveIndex * distance;
 
@@ -78,4 +85,35 @@ void EMRay::reflect_pec(const Vec3 &unitNormal) {
     const Vec3C reflectedE = -incident.E + 2.0 * normal.dot(incident.E) * normal;
     path_.push_back({incident.position, reflectedE, incident.opticalPath});
     direction_ = reflected;
+}
+
+std::optional<double> intersect_receiver(
+    const EMRay &ray,
+    const Vec3 &receiverPosition,
+    double radius) {
+    if (!receiverPosition.allFinite() || !std::isfinite(radius) || radius <= 0.0) {
+        throw std::invalid_argument("Receiver position must be finite and radius must be finite and positive");
+    }
+    const Vec3 m =
+            ray.path_.back().position - receiverPosition;
+
+    if (m.norm() <= radius) {
+        return 0.0;
+    }
+
+    // Project the sphere centre onto the ray's line.
+    const double closestDistance = -ray.direction_.dot(m);
+    if (closestDistance <= 0.0) {
+        return std::nullopt;
+    }
+
+    // Compute the perpendicular separation directly instead of subtracting
+    // two large squared distances in the quadratic discriminant.
+    const Vec3 perpendicular = m + closestDistance * ray.direction_;
+    const double halfChordSquared = radius * radius - perpendicular.squaredNorm();
+    if (halfChordSquared < 0.0) {
+        return std::nullopt;
+    }
+
+    return closestDistance - std::sqrt(halfChordSquared);
 }
