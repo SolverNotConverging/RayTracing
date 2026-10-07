@@ -42,7 +42,8 @@ void EMRay::propagate(
     double refractiveIndex) {
     if (!std::isfinite(distance) || distance < 0.0 ||
         !std::isfinite(refractiveIndex) || refractiveIndex <= 0.0) {
-        throw std::invalid_argument("Distance must be finite and nonnegative; refractive index must be finite and positive");
+        throw std::invalid_argument(
+            "Distance must be finite and nonnegative; refractive index must be finite and positive");
     }
     if (distance == 0.0) {
         return;
@@ -116,4 +117,142 @@ std::optional<double> intersect_receiver(
     }
 
     return closestDistance - std::sqrt(halfChordSquared);
+}
+
+std::optional<double> intersect_rectangle(
+    const EMRay &ray,
+    const Rectangle &rectangle) {
+    // Assumes orthonormal u and v, and positive half-sizes.
+    const Vec3 normal = rectangle.u.cross(rectangle.v);
+
+    const auto distance =
+            intersect_plane(ray, rectangle.center, normal);
+
+    if (!distance) {
+        return std::nullopt;
+    }
+
+    const Vec3 hit =
+            ray.path_.back().position + *distance * ray.direction_;
+
+    const Vec3 offset = hit - rectangle.center;
+    const double alpha = offset.dot(rectangle.u);
+    const double beta = offset.dot(rectangle.v);
+
+    constexpr double edgeTolerance = 1e-8; // metres
+
+    if (std::abs(alpha) > rectangle.halfWidth + edgeTolerance ||
+        std::abs(beta) > rectangle.halfHeight + edgeTolerance) {
+        return std::nullopt;
+    }
+
+    return distance;
+}
+
+std::optional<SurfaceHit> nearest_surface(
+    const EMRay &ray,
+    const std::vector<Rectangle> &rectangles) {
+    std::optional<SurfaceHit> nearest;
+
+    for (std::size_t i = 0; i < rectangles.size(); ++i) {
+        const auto distance =
+                intersect_rectangle(ray, rectangles[i]);
+
+        if (!distance) {
+            continue;
+        }
+
+        if (!nearest || *distance < nearest->distance) {
+            nearest = SurfaceHit{*distance, i};
+        }
+    }
+
+    return nearest;
+}
+
+TraceResult trace_ray(EMRay &ray, const std::vector<Rectangle> &rectangles,
+                      const Vec3 &receiverPosition, double receiverRadius,
+                      const TraceOptions &options) {
+    if (options.maxReflections < 0 || !std::isfinite(options.maxDistance) ||
+        options.maxDistance <= 0.0 || !std::isfinite(options.refractiveIndex) ||
+        options.refractiveIndex <= 0.0) {
+        throw std::invalid_argument(
+            "Trace limits and refractive index must be valid and positive (zero reflections is allowed)");
+    }
+
+    int reflections = 0;
+    double travelled = 0.0;
+    while (true) {
+        const auto receiverDistance = intersect_receiver(ray, receiverPosition, receiverRadius);
+        const auto surface = nearest_surface(ray, rectangles);
+        const double remaining = options.maxDistance - travelled;
+        const bool receiverFirst = receiverDistance &&
+                                   (!surface || *receiverDistance < surface->distance);
+
+        if (!receiverFirst && !surface) {
+            // No future event: show a finite outgoing segment rather than an
+            // infinite ray. This continuation still accumulates physical OPL.
+            ray.propagate(remaining, options.refractiveIndex);
+            return {TraceStatus::Escaped, reflections, options.maxDistance};
+        }
+
+        const double nextDistance = receiverFirst ? *receiverDistance : surface->distance;
+        if (nextDistance > remaining) {
+            ray.propagate(remaining, options.refractiveIndex);
+            return {TraceStatus::DistanceLimit, reflections, options.maxDistance};
+        }
+
+        ray.propagate(nextDistance, options.refractiveIndex);
+        travelled += nextDistance;
+        if (receiverFirst) {
+            return {TraceStatus::Received, reflections, travelled};
+        }
+        if (travelled >= options.maxDistance) {
+            return {TraceStatus::DistanceLimit, reflections, travelled};
+        }
+        if (reflections >= options.maxReflections) {
+            return {TraceStatus::ReflectionLimit, reflections, travelled};
+        }
+
+        const Rectangle &wall = rectangles[surface->rectangleIndex];
+        ray.reflect_pec(wall.u.cross(wall.v));
+        ++reflections;
+    }
+}
+
+std::vector<Vec3> launch_directions(std::size_t count) {
+    std::vector<Vec3> directions;
+    directions.reserve(count);
+
+    const double goldenAngle = PI * (3.0 - std::sqrt(5.0));
+
+    for (std::size_t i = 0; i < count; ++i) {
+        const double z =
+                1.0 - 2.0 * (static_cast<double>(i) + 0.5)
+                / static_cast<double>(count);
+
+        const double radius = std::sqrt(1.0 - z * z);
+        const double phi = goldenAngle * static_cast<double>(i);
+
+        directions.emplace_back(
+            radius * std::cos(phi),
+            radius * std::sin(phi),
+            z);
+    }
+
+    return directions;
+}
+
+Vec3C launch_polarization(const Vec3 &unitDirection)
+{
+    // Avoid projecting an axis nearly parallel to the ray.
+    const Vec3 reference =
+        std::abs(unitDirection.z()) < 0.9
+        ? Vec3{0.0, 0.0, 1.0}
+    : Vec3{1.0, 0.0, 0.0};
+
+    const Vec3 transverse =
+        reference - reference.dot(unitDirection) * unitDirection;
+
+    return transverse.normalized().cast<Complex>();
 }

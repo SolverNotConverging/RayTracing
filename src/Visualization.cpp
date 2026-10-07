@@ -14,10 +14,13 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkSphereSource.h>
 #include <vtkTextActor.h>
 #include <vtkTextProperty.h>
 
-void visualize_rays(const std::vector<EMRay> &rays) {
+void visualize_rays(const std::vector<EMRay> &rays,
+                    const std::vector<Rectangle> &rectangles,
+                    const Vec3 &receiverPosition, double receiverRadius) {
     vtkNew<vtkPoints> pathPoints;
     vtkNew<vtkCellArray> pathLines;
     vtkNew<vtkPoints> polarizationPoints;
@@ -77,6 +80,45 @@ void visualize_rays(const std::vector<EMRay> &rays) {
     polarizationActor->GetProperty()->SetColor(1.0, 0.75, 0.2);
     polarizationActor->GetProperty()->SetLineWidth(2.0);
 
+    // Use the same four corners and dimensions as the intersection geometry.
+    vtkNew<vtkPoints> wallPoints;
+    vtkNew<vtkCellArray> wallFaces;
+    for (const Rectangle &wall : rectangles) {
+        const Vec3 width = wall.halfWidth * wall.u;
+        const Vec3 height = wall.halfHeight * wall.v;
+        const Vec3 corners[] = {wall.center - width - height,
+                                wall.center + width - height,
+                                wall.center + width + height,
+                                wall.center - width + height};
+        wallFaces->InsertNextCell(4);
+        for (const Vec3 &corner : corners) {
+            wallFaces->InsertCellPoint(wallPoints->InsertNextPoint(corner.data()));
+        }
+    }
+    vtkNew<vtkPolyData> wallData;
+    wallData->SetPoints(wallPoints);
+    wallData->SetPolys(wallFaces);
+    vtkNew<vtkPolyDataMapper> wallMapper;
+    wallMapper->SetInputData(wallData);
+    vtkNew<vtkActor> wallActor;
+    wallActor->SetMapper(wallMapper);
+    wallActor->GetProperty()->SetColor(0.65, 0.7, 0.8);
+    wallActor->GetProperty()->SetOpacity(0.25);
+    wallActor->GetProperty()->EdgeVisibilityOn();
+    wallActor->GetProperty()->SetEdgeColor(0.8, 0.85, 0.95);
+
+    vtkNew<vtkSphereSource> receiverSphere;
+    receiverSphere->SetCenter(receiverPosition.data());
+    receiverSphere->SetRadius(receiverRadius);
+    receiverSphere->SetThetaResolution(32);
+    receiverSphere->SetPhiResolution(24);
+    vtkNew<vtkPolyDataMapper> receiverMapper;
+    receiverMapper->SetInputConnection(receiverSphere->GetOutputPort());
+    vtkNew<vtkActor> receiverActor;
+    receiverActor->SetMapper(receiverMapper);
+    receiverActor->GetProperty()->SetColor(0.2, 1.0, 0.35);
+    receiverActor->GetProperty()->SetOpacity(0.5);
+
     vtkNew<vtkAxesActor> axes;
     axes->SetTotalLength(0.5, 0.5, 0.5);
     axes->SetXAxisLabelText("x [m]");
@@ -84,7 +126,8 @@ void visualize_rays(const std::vector<EMRay> &rays) {
     axes->SetZAxisLabelText("z [m]");
 
     vtkNew<vtkTextActor> legend;
-    legend->SetInput("Cyan: ray paths\nGold: polarization at each sample (scaled for display)\n"
+    legend->SetInput("Cyan: ray paths | Gold: polarization (scaled)\n"
+                     "Grey: PEC rectangles | Green: Rx reception sphere\n"
                      "Drag: rotate | Scroll: zoom | Middle drag: pan");
     legend->SetDisplayPosition(15, 15);
     legend->GetTextProperty()->SetFontSize(18);
@@ -94,6 +137,8 @@ void visualize_rays(const std::vector<EMRay> &rays) {
     renderer->SetBackground(0.08, 0.1, 0.14);
     renderer->AddActor(pathActor);
     renderer->AddActor(polarizationActor);
+    renderer->AddActor(wallActor);
+    renderer->AddActor(receiverActor);
     renderer->AddActor(axes);
     renderer->AddViewProp(legend);
     renderer->GetActiveCamera()->SetPosition(4.0, 3.0, 5.0);

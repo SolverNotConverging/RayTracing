@@ -70,3 +70,49 @@ std::optional<double> intersect_receiver(
     const EMRay &ray,
     const Vec3 &receiverPosition,
     double radius);
+
+struct Rectangle {
+    Vec3 center;
+    Vec3 u; // Unit width direction
+    Vec3 v; // Unit height direction, perpendicular to u
+    double halfWidth;
+    double halfHeight;
+};
+
+std::optional<double> intersect_rectangle(
+    const EMRay &ray,
+    const Rectangle &rectangle);
+
+struct SurfaceHit {
+    double distance;
+    std::size_t rectangleIndex;
+};
+
+std::optional<SurfaceHit> nearest_surface(
+    const EMRay &ray,
+    const std::vector<Rectangle> &rectangles);
+
+enum class TraceStatus { Received, Escaped, ReflectionLimit, DistanceLimit };
+
+struct TraceOptions {
+    int maxReflections = 8;
+    double maxDistance = 20.0; // physical distance in metres, from this call's start
+    double refractiveIndex = 1.0;
+};
+
+struct TraceResult {
+    TraceStatus status;
+    int reflections;
+    double distance;
+};
+
+// Trace one ray. After the last permitted reflection, still check the next
+// segment for reception. Escaping rays are drawn out to maxDistance.
+TraceResult trace_ray(EMRay &ray, const std::vector<Rectangle> &rectangles,
+                      const Vec3 &receiverPosition, double receiverRadius,
+                      const TraceOptions &options = {});
+
+
+std::vector<Vec3> launch_directions(std::size_t count);
+
+Vec3C launch_polarization(const Vec3 &unitDirection);
