@@ -32,13 +32,13 @@ TraceOptions load_trace_options(const std::filesystem::path &path) {
         }
 
         TraceOptions options;
-        options.maxReflections = reflections.get<int>();
-        options.maxDistance = distance.get<double>();
-        options.refractiveIndex = index.get<double>();
-        if (!std::isfinite(options.maxDistance) || options.maxDistance <= 0.0) {
+        options.maxReflections_ = reflections.get<int>();
+        options.maxDistance_ = distance.get<double>();
+        options.refractiveIndex_ = index.get<double>();
+        if (!std::isfinite(options.maxDistance_) || options.maxDistance_ <= 0.0) {
             throw std::runtime_error("maxDistance must be finite and positive (metres)");
         }
-        if (!std::isfinite(options.refractiveIndex) || options.refractiveIndex <= 0.0) {
+        if (!std::isfinite(options.refractiveIndex_) || options.refractiveIndex_ <= 0.0) {
             throw std::runtime_error("refractiveIndex must be finite and positive");
         }
         return options;

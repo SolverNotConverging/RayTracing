@@ -18,8 +18,85 @@
 #include <vtkTextActor.h>
 #include <vtkTextProperty.h>
 
+#include <type_traits>
+#include <vtkSmartPointer.h>
+
+namespace {
+    // These meshes are only for display; ray intersections use Surface.cpp.
+    vtkSmartPointer<vtkPolyData> surface_mesh(const Surface &surface) {
+        return std::visit([](const auto &shape) -> vtkSmartPointer<vtkPolyData> {
+            using Shape = std::decay_t<decltype(shape)>;
+            if constexpr (std::is_same_v<Shape, Sphere>) {
+                vtkNew<vtkSphereSource> sphere;
+                sphere->SetCenter(shape.center_.data());
+                sphere->SetRadius(shape.radius_);
+                sphere->SetThetaResolution(64);
+                sphere->SetPhiResolution(32);
+                sphere->Update();
+                return sphere->GetOutput();
+            } else {
+                vtkNew<vtkPoints> points;
+                vtkNew<vtkCellArray> faces;
+                auto polygon = [&](const std::vector<Vec3> &vertices) {
+                    faces->InsertNextCell(static_cast<vtkIdType>(vertices.size()));
+                    for (const Vec3 &vertex: vertices)
+                        faces->InsertCellPoint(points->InsertNextPoint(vertex.data()));
+                };
+                if constexpr (std::is_same_v<Shape, Rectangle>) {
+                    const Vec3 u = shape.halfWidth_ * shape.u_, v = shape.halfHeight_ * shape.v_;
+                    polygon({
+                        shape.center_ - u - v, shape.center_ + u - v,
+                        shape.center_ + u + v, shape.center_ - u + v
+                    });
+                } else if constexpr (std::is_same_v<Shape, Triangle>) {
+                    polygon({shape.a_, shape.b_, shape.c_});
+                } else {
+                    constexpr int segments = 64;
+                    const Vec3 axis = [&]() -> Vec3 {
+                        if constexpr (std::is_same_v<Shape, Disk>) return shape.normal_;
+                        else return shape.axis_;
+                    }();
+                    const Vec3 u = axis.unitOrthogonal();
+                    const Vec3 v = axis.cross(u);
+                    std::vector<Vec3> ring;
+                    for (int i = 0; i < segments; ++i) {
+                        const double angle = 2.0 * PI * i / segments;
+                        ring.push_back(shape.center_ + shape.radius_ *
+                                       (std::cos(angle) * u + std::sin(angle) * v));
+                    }
+                    if constexpr (std::is_same_v<Shape, Disk>) {
+                        polygon(ring);
+                    } else {
+                        const Vec3 offset = shape.halfLength_ * axis;
+                        for (int i = 0; i < segments; ++i) {
+                            const int j = (i + 1) % segments;
+                            polygon({
+                                ring[i] - offset, ring[j] - offset,
+                                ring[j] + offset, ring[i] + offset
+                            });
+                        }
+                        if (shape.capped_) {
+                            std::vector<Vec3> bottom, top;
+                            for (int i = 0; i < segments; ++i) {
+                                bottom.push_back(ring[segments - 1 - i] - offset);
+                                top.push_back(ring[i] + offset);
+                            }
+                            polygon(bottom);
+                            polygon(top);
+                        }
+                    }
+                }
+                auto data = vtkSmartPointer<vtkPolyData>::New();
+                data->SetPoints(points);
+                data->SetPolys(faces);
+                return data;
+            }
+        }, surface);
+    }
+}
+
 void visualize_rays(const std::vector<EMRay> &rays,
-                    const std::vector<Rectangle> &rectangles,
+                    const std::vector<Surface> &surfaces,
                     const Vec3 &receiverPosition, double receiverRadius) {
     vtkNew<vtkPoints> pathPoints;
     vtkNew<vtkCellArray> pathLines;
@@ -30,7 +107,7 @@ void visualize_rays(const std::vector<EMRay> &rays,
     constexpr double polarizationScale = 0.12;
     constexpr int ellipseSegments = 64;
 
-    for (const auto &ray : rays) {
+    for (const auto &ray: rays) {
         if (ray.path_.empty()) {
             continue;
         }
@@ -38,22 +115,22 @@ void visualize_rays(const std::vector<EMRay> &rays,
         // A polyline connects all saved samples, including intermediate steps.
         if (ray.path_.size() >= 2) {
             pathLines->InsertNextCell(static_cast<vtkIdType>(ray.path_.size()));
-            for (const auto &sample : ray.path_) {
-                pathLines->InsertCellPoint(pathPoints->InsertNextPoint(sample.position.data()));
+            for (const auto &sample: ray.path_) {
+                pathLines->InsertCellPoint(pathPoints->InsertNextPoint(sample.position_.data()));
             }
         }
 
-        for (const auto &sample : ray.path_) {
+        for (const auto &sample: ray.path_) {
             // Over one cycle, Re(E * exp(i*phase)) traces the polarization ellipse.
             // A linearly polarized field traces a line instead of an ellipse.
-            const Vec3 realE = sample.E.real();
-            const Vec3 imagE = sample.E.imag();
+            const Vec3 realE = sample.E_.real();
+            const Vec3 imagE = sample.E_.imag();
             const vtkIdType firstPoint = polarizationPoints->GetNumberOfPoints();
             polarizationLines->InsertNextCell(ellipseSegments + 1);
             for (int i = 0; i < ellipseSegments; ++i) {
                 const double phase = 2.0 * PI * i / ellipseSegments;
-                const Vec3 point = sample.position + polarizationScale *
-                    (realE * std::cos(phase) - imagE * std::sin(phase));
+                const Vec3 point = sample.position_ + polarizationScale *
+                                   (realE * std::cos(phase) - imagE * std::sin(phase));
                 polarizationLines->InsertCellPoint(polarizationPoints->InsertNextPoint(point.data()));
             }
             polarizationLines->InsertCellPoint(firstPoint);
@@ -80,33 +157,6 @@ void visualize_rays(const std::vector<EMRay> &rays,
     polarizationActor->GetProperty()->SetColor(1.0, 0.75, 0.2);
     polarizationActor->GetProperty()->SetLineWidth(2.0);
 
-    // Use the same four corners and dimensions as the intersection geometry.
-    vtkNew<vtkPoints> wallPoints;
-    vtkNew<vtkCellArray> wallFaces;
-    for (const Rectangle &wall : rectangles) {
-        const Vec3 width = wall.halfWidth * wall.u;
-        const Vec3 height = wall.halfHeight * wall.v;
-        const Vec3 corners[] = {wall.center - width - height,
-                                wall.center + width - height,
-                                wall.center + width + height,
-                                wall.center - width + height};
-        wallFaces->InsertNextCell(4);
-        for (const Vec3 &corner : corners) {
-            wallFaces->InsertCellPoint(wallPoints->InsertNextPoint(corner.data()));
-        }
-    }
-    vtkNew<vtkPolyData> wallData;
-    wallData->SetPoints(wallPoints);
-    wallData->SetPolys(wallFaces);
-    vtkNew<vtkPolyDataMapper> wallMapper;
-    wallMapper->SetInputData(wallData);
-    vtkNew<vtkActor> wallActor;
-    wallActor->SetMapper(wallMapper);
-    wallActor->GetProperty()->SetColor(0.65, 0.7, 0.8);
-    wallActor->GetProperty()->SetOpacity(0.25);
-    wallActor->GetProperty()->EdgeVisibilityOn();
-    wallActor->GetProperty()->SetEdgeColor(0.8, 0.85, 0.95);
-
     vtkNew<vtkSphereSource> receiverSphere;
     receiverSphere->SetCenter(receiverPosition.data());
     receiverSphere->SetRadius(receiverRadius);
@@ -127,8 +177,8 @@ void visualize_rays(const std::vector<EMRay> &rays,
 
     vtkNew<vtkTextActor> legend;
     legend->SetInput("Cyan: ray paths | Gold: polarization (scaled)\n"
-                     "Grey: PEC rectangles | Green: Rx reception sphere\n"
-                     "Drag: rotate | Scroll: zoom | Middle drag: pan");
+        "Grey: PEC surfaces | Green: Rx reception sphere\n"
+        "Drag: rotate | Scroll: zoom | Middle drag: pan");
     legend->SetDisplayPosition(15, 15);
     legend->GetTextProperty()->SetFontSize(18);
     legend->GetTextProperty()->SetColor(1.0, 1.0, 1.0);
@@ -137,7 +187,19 @@ void visualize_rays(const std::vector<EMRay> &rays,
     renderer->SetBackground(0.08, 0.1, 0.14);
     renderer->AddActor(pathActor);
     renderer->AddActor(polarizationActor);
-    renderer->AddActor(wallActor);
+    for (const Surface &surface: surfaces) {
+        vtkNew<vtkPolyDataMapper> mapper;
+        mapper->SetInputData(surface_mesh(surface));
+        vtkNew<vtkActor> actor;
+        actor->SetMapper(mapper);
+        actor->GetProperty()->SetColor(0.65, 0.7, 0.8);
+        actor->GetProperty()->SetOpacity(0.25);
+        if (std::holds_alternative<Rectangle>(surface) || std::holds_alternative<Triangle>(surface)) {
+            actor->GetProperty()->EdgeVisibilityOn();
+            actor->GetProperty()->SetEdgeColor(0.8, 0.85, 0.95);
+        }
+        renderer->AddActor(actor);
+    }
     renderer->AddActor(receiverActor);
     renderer->AddActor(axes);
     renderer->AddViewProp(legend);
