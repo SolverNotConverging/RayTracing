@@ -15,8 +15,15 @@ struct RaySample {
     double opticalPath_;
 };
 
+struct ReflectionEvent {
+    std::size_t surfaceIndex_;
+    std::size_t incidentSampleIndex_;
+    Vec3 normal_;
+};
+
 struct EMRay {
     std::vector<RaySample> path_;
+    std::vector<ReflectionEvent> reflections_;
     Vec3 direction_;
 
     double wavelength0_;
@@ -61,7 +68,7 @@ std::optional<double> intersect_receiver(
     double radius);
 
 
-enum class TraceStatus { Received, Escaped, ReflectionLimit, DistanceLimit };
+enum class TraceStatus { Received, Escaped, ReflectionLimit, DistanceLimit, AmbiguousHit };
 
 struct TraceOptions {
     int maxReflections_ = 8;
@@ -77,6 +84,7 @@ struct TraceResult {
 
 // Trace one ray. After the last permitted reflection, still check the next
 // segment for reception. Escaping rays are drawn out to maxDistance_.
+// When launched inside/on the Rx sphere, reception starts after leaving it.
 TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
                       const Vec3 &receiverPosition, double receiverRadius,
                       const TraceOptions &options = {});

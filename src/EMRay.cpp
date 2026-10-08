@@ -102,8 +102,14 @@ TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
 
     int reflections = 0;
     double travelled = 0.0;
+    // A transmitter inside the reception sphere must first leave it. Otherwise
+    // a monostatic trace terminates at launch instead of finding a return.
+    bool receiverArmed = (ray.path_.back().position_ - receiverPosition).norm() > receiverRadius;
+    // Validate the receiver even when reception starts disarmed.
+    intersect_receiver(ray, receiverPosition, receiverRadius);
     while (true) {
-        const auto receiverDistance = intersect_receiver(ray, receiverPosition, receiverRadius);
+        const auto receiverDistance = receiverArmed ? intersect_receiver(ray, receiverPosition, receiverRadius)
+                                                   : std::optional<double>{};
         const auto surface = nearest_surface(ray.path_.back().position_, ray.direction_, surfaces);
         const double remaining = options.maxDistance_ - travelled;
         const bool receiverFirst = receiverDistance &&
@@ -124,8 +130,13 @@ TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
 
         ray.propagate(nextDistance, options.refractiveIndex_);
         travelled += nextDistance;
+        if ((ray.path_.back().position_ - receiverPosition).norm() > receiverRadius)
+            receiverArmed = true;
         if (receiverFirst) {
             return {TraceStatus::Received, reflections, travelled};
+        }
+        if (surface->ambiguous_) {
+            return {TraceStatus::AmbiguousHit, reflections, travelled};
         }
         if (travelled >= options.maxDistance_) {
             return {TraceStatus::DistanceLimit, reflections, travelled};
@@ -134,7 +145,9 @@ TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
             return {TraceStatus::ReflectionLimit, reflections, travelled};
         }
 
+        const std::size_t incidentIndex = ray.path_.size() - 1;
         ray.reflect_pec(surface->normal_);
+        ray.reflections_.push_back({surface->surfaceIndex_, incidentIndex, surface->normal_});
         ++reflections;
     }
 }

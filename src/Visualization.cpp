@@ -95,9 +95,11 @@ namespace {
     }
 }
 
-void visualize_rays(const std::vector<EMRay> &rays,
+static void show_scene(const std::vector<std::vector<Vec3>> &paths,
+                    const std::vector<EMRay> &rays,
                     const std::vector<Surface> &surfaces,
-                    const Vec3 &receiverPosition, double receiverRadius) {
+                    const Vec3 &receiverPosition, double receiverRadius,
+                    const std::vector<std::vector<Vec3>> &unresolvedPaths = {}) {
     vtkNew<vtkPoints> pathPoints;
     vtkNew<vtkCellArray> pathLines;
     vtkNew<vtkPoints> polarizationPoints;
@@ -107,17 +109,16 @@ void visualize_rays(const std::vector<EMRay> &rays,
     constexpr double polarizationScale = 0.12;
     constexpr int ellipseSegments = 64;
 
+    for (const auto &path : paths) {
+        if (path.size() < 2) continue;
+        pathLines->InsertNextCell(static_cast<vtkIdType>(path.size()));
+        for (const Vec3 &point : path)
+            pathLines->InsertCellPoint(pathPoints->InsertNextPoint(point.data()));
+    }
+
     for (const auto &ray: rays) {
         if (ray.path_.empty()) {
             continue;
-        }
-
-        // A polyline connects all saved samples, including intermediate steps.
-        if (ray.path_.size() >= 2) {
-            pathLines->InsertNextCell(static_cast<vtkIdType>(ray.path_.size()));
-            for (const auto &sample: ray.path_) {
-                pathLines->InsertCellPoint(pathPoints->InsertNextPoint(sample.position_.data()));
-            }
         }
 
         for (const auto &sample: ray.path_) {
@@ -146,6 +147,24 @@ void visualize_rays(const std::vector<EMRay> &rays,
     pathActor->SetMapper(pathMapper);
     pathActor->GetProperty()->SetColor(0.2, 0.8, 1.0);
     pathActor->GetProperty()->SetLineWidth(2.0);
+
+    vtkNew<vtkPoints> unresolvedPoints;
+    vtkNew<vtkCellArray> unresolvedLines;
+    for (const auto &path : unresolvedPaths) {
+        if (path.size() < 2) continue;
+        unresolvedLines->InsertNextCell(static_cast<vtkIdType>(path.size()));
+        for (const Vec3 &point : path)
+            unresolvedLines->InsertCellPoint(unresolvedPoints->InsertNextPoint(point.data()));
+    }
+    vtkNew<vtkPolyData> unresolvedData;
+    unresolvedData->SetPoints(unresolvedPoints);
+    unresolvedData->SetLines(unresolvedLines);
+    vtkNew<vtkPolyDataMapper> unresolvedMapper;
+    unresolvedMapper->SetInputData(unresolvedData);
+    vtkNew<vtkActor> unresolvedActor;
+    unresolvedActor->SetMapper(unresolvedMapper);
+    unresolvedActor->GetProperty()->SetColor(1.0, 0.45, 0.1);
+    unresolvedActor->GetProperty()->SetLineWidth(2.0);
 
     vtkNew<vtkPolyData> polarizationData;
     polarizationData->SetPoints(polarizationPoints);
@@ -176,7 +195,12 @@ void visualize_rays(const std::vector<EMRay> &rays,
     axes->SetZAxisLabelText("z [m]");
 
     vtkNew<vtkTextActor> legend;
-    legend->SetInput("Cyan: ray paths | Gold: polarization (scaled)\n"
+    legend->SetInput(rays.empty() ?
+        "Cyan: refined paths (geometry only)\n"
+        "Orange: unresolved corner candidates (coarse paths)\n"
+        "Grey: PEC surfaces | Green: Rx reception sphere\n"
+        "Drag: rotate | Scroll: zoom | Middle drag: pan" :
+        "Cyan: ray paths | Gold: polarization (scaled)\n"
         "Grey: PEC surfaces | Green: Rx reception sphere\n"
         "Drag: rotate | Scroll: zoom | Middle drag: pan");
     legend->SetDisplayPosition(15, 15);
@@ -186,6 +210,7 @@ void visualize_rays(const std::vector<EMRay> &rays,
     vtkNew<vtkRenderer> renderer;
     renderer->SetBackground(0.08, 0.1, 0.14);
     renderer->AddActor(pathActor);
+    renderer->AddActor(unresolvedActor);
     renderer->AddActor(polarizationActor);
     for (const Surface &surface: surfaces) {
         vtkNew<vtkPolyDataMapper> mapper;
@@ -209,7 +234,7 @@ void visualize_rays(const std::vector<EMRay> &rays,
     renderer->ResetCamera();
 
     vtkNew<vtkRenderWindow> window;
-    window->SetWindowName("3D ray paths and polarization");
+    window->SetWindowName(rays.empty() ? "Refined ray geometry" : "3D ray paths and polarization");
     window->SetSize(1100, 800);
     window->AddRenderer(renderer);
 
@@ -219,4 +244,21 @@ void visualize_rays(const std::vector<EMRay> &rays,
     interactor->SetInteractorStyle(style);
     window->Render();
     interactor->Start();
+}
+
+void visualize_rays(const std::vector<EMRay> &rays, const std::vector<Surface> &surfaces,
+                    const Vec3 &receiverPosition, double receiverRadius) {
+    std::vector<std::vector<Vec3>> paths;
+    for (const auto &ray : rays) {
+        std::vector<Vec3> points;
+        for (const auto &sample : ray.path_) points.push_back(sample.position_);
+        paths.push_back(std::move(points));
+    }
+    show_scene(paths, rays, surfaces, receiverPosition, receiverRadius);
+}
+
+void visualize_paths(const std::vector<std::vector<Vec3>> &paths, const std::vector<Surface> &surfaces,
+                     const Vec3 &receiverPosition, double receiverRadius,
+                     const std::vector<std::vector<Vec3>> &unresolvedPaths) {
+    show_scene(paths, {}, surfaces, receiverPosition, receiverRadius, unresolvedPaths);
 }

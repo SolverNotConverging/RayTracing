@@ -20,6 +20,10 @@ add_executable(RayTracing src/main.cpp
         include/EMRay.hpp
         src/EMRay.cpp
         src/Surface.cpp
+        src/SequenceEvaluator.cpp
+        src/PathRefinement.cpp
+        include/PathRefinement.hpp
+        include/SequenceEvaluator.hpp
         src/Visualization.cpp
         src/TraceConfig.cpp
         include/TraceConfig.hpp
@@ -50,4 +54,15 @@ if (BUILD_TESTING)
     target_include_directories(SurfaceTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(SurfaceTests PRIVATE Eigen3::Eigen)
     add_test(NAME SurfaceTests COMMAND SurfaceTests)
+
+    add_executable(SequenceEvaluatorTests tests/SequenceEvaluatorTests.cpp
+            src/SequenceEvaluator.cpp src/Surface.cpp)
+    target_include_directories(SequenceEvaluatorTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(SequenceEvaluatorTests PRIVATE Eigen3::Eigen)
+    add_test(NAME SequenceEvaluatorTests COMMAND SequenceEvaluatorTests)
+    add_executable(PathRefinementTests tests/PathRefinementTests.cpp
+            src/PathRefinement.cpp src/SequenceEvaluator.cpp src/Surface.cpp src/EMRay.cpp)
+    target_include_directories(PathRefinementTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(PathRefinementTests PRIVATE Eigen3::Eigen)
+    add_test(NAME PathRefinementTests COMMAND PathRefinementTests)
 endif ()

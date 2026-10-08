@@ -54,7 +54,13 @@ struct SurfaceHit {
     double distance_;
     Vec3 normal_;
     std::size_t surfaceIndex_;
+    bool ambiguous_ = false; // Simultaneous hits with incompatible normals
+    std::vector<std::size_t> coincidentSurfaceIndices_;
 };
+
+// Independent of the self-hit cutoff tMin. Distances are measured along a unit ray.
+inline constexpr double simultaneousHitTolerance = 1e-8; // metres
+inline constexpr double equivalentNormalTolerance = 1e-8; // unit-vector chord length
 
 // Call once after scene construction, and again if geometry is changed.
 // Throws for nonfinite geometry, invalid dimensions, or invalid axes/vertices.
