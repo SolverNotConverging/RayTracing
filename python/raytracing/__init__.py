@@ -13,7 +13,7 @@ if _os.name == "nt":
 
 from . import _core
 from ._core import *
-from .visualization import ViewOptions, plot, plot_csv, visualize, visualize_h5
+from .visualization import ViewOptions, plot, plot_csv, visualize, visualize_h5, show
 
 __version__ = _core.__version__
 
@@ -24,5 +24,5 @@ def example_pattern() -> _Path:
 
 
 __all__ = [name for name in dir(_core) if not name.startswith("_")] + [
-    "example_pattern", "ViewOptions", "plot", "plot_csv", "visualize", "visualize_h5", "__version__"
+    "example_pattern", "ViewOptions", "plot", "plot_csv", "visualize", "visualize_h5", "show", "__version__"
 ]

@@ -1,5 +1,5 @@
 """Python-only visualization. Rendering libraries are imported on demand."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
@@ -103,6 +103,7 @@ def _antenna_mesh(pv, antenna, position, frequency, medium, scale):
 def visualize(result, *, options=None):
     """Return a customizable PyVista Plotter containing the solved scene.
 
+    Use ``raytracing.show(result)`` for an interactive desktop window.
     Use ``plotter.show(jupyter_backend='static')`` in a notebook,
     ``plotter.screenshot(path)`` to export, and ``plotter.close()`` when finished.
     """
@@ -195,3 +196,21 @@ def visualize(result, *, options=None):
 def visualize_h5(path, *, options=None):
     """Load and return a PyVista scene without rerunning the numerical solver."""
     return visualize(core.load_h5(path), options=options)
+
+
+def show(result, *, options=None):
+    """Open an interactive desktop scene and wait until its window is closed.
+
+    Left-drag rotates, middle-drag or Shift+left-drag pans, and the mouse wheel
+    zooms. Press R to reset the camera. Run from a standalone Python script.
+    Other view settings are preserved; desktop rendering is always enabled.
+    """
+    desktop_options = replace(options or ViewOptions(), off_screen=False, notebook=False)
+    viewer = visualize(result, options=desktop_options)
+    try:
+        viewer.enable_trackball_style()
+        viewer.add_text("Drag: rotate   Shift+drag: pan   Wheel: zoom   R: reset",
+                        position="upper_left", font_size=11, color="white")
+        viewer.show(title="RayTracing — interactive scene")
+    finally:
+        viewer.close()

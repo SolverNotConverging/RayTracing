@@ -6,14 +6,26 @@ the comparison figures using Matplotlib in the existing `.venv`.
 
 ## Build and run
 
-From a compiler developer shell, configure the project with the existing vcpkg
-toolchain. The native dependencies are Eigen3, nlohmann_json and HDF5.
+Configure `cmake-build-tests` using the platform-specific instructions in the
+[main README](../README.md#tests): MSVC/vcpkg on Windows, Apple Clang/Homebrew
+on macOS, or GCC/distribution packages on Linux. Activate `.venv` first.
+
+Windows Developer PowerShell:
 
 ```powershell
 ./.venv/Scripts/cmake.exe --build cmake-build-tests --target SpreadingBenchmarks
 ./cmake-build-tests/SpreadingBenchmarks.exe benchmarks/results
 ./.venv/Scripts/python.exe benchmarks/plot_results.py benchmarks/results
 ./.venv/Scripts/ctest.exe --test-dir cmake-build-tests --output-on-failure
+```
+
+macOS/Linux:
+
+```bash
+cmake --build cmake-build-tests --target SpreadingBenchmarks
+./cmake-build-tests/SpreadingBenchmarks benchmarks/results
+python benchmarks/plot_results.py benchmarks/results
+ctest --test-dir cmake-build-tests --output-on-failure
 ```
 
 CTest writes numerical data into the build directory. Set `BUILD_BENCHMARKS=OFF`

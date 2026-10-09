@@ -19,7 +19,7 @@ cmake.version = ">=4.2"
 cmake.build-type = "Release"
 build-dir = "build/{wheel_tag}"
 wheel.packages = ["python/raytracing"]
-sdist.include = ["antenna_patterns/simple_patch.ffs", "example1.ipynb", "example2.ipynb"]
+sdist.include = ["antenna_patterns/simple_patch.ffs", "example1.ipynb", "example2.ipynb", "example1.py", "example2.py"]
 
 [tool.scikit-build.cmake.define]
 BUILD_TESTING = "OFF"
@@ -27,3 +27,8 @@ BUILD_BENCHMARKS = "OFF"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
+
+[tool.uv]
+# Keep IDE launches on the explicitly installed wheel in the existing .venv.
+# Native builds require the compiler environment and are run deliberately.
+managed = false
