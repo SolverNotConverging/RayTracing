@@ -32,12 +32,6 @@ on those operating systems.
 Extract a source release or obtain a repository checkout, then open a terminal
 in its root directory, next to `pyproject.toml` and `CMakeLists.txt`.
 
-The build installs `antenna_patterns/simple_patch.ffs` as package data. **Check
-that this file exists before building.** Generated source archives include it,
-but `antenna_patterns/` is currently Git-ignored. For a Git-only checkout, obtain
-the file from the maintainer/source release and place it at that path. Include
-it when sharing a source directory.
-
 Use the existing `.venv` if present. The creation commands below are for a fresh
 checkout; skip them when reusing an environment. Keep Python, compiler and native
 libraries on the same CPU architecture.
