@@ -14,9 +14,10 @@ SequenceEvaluation evaluate_sequence(
     if (!transmitterPosition.allFinite() || !receiverPosition.allFinite() ||
         !launchDirection.allFinite() || std::abs(launchDirection.norm() - 1.0) > 1e-10 ||
         !std::isfinite(tMin) || tMin < 0.0) {
-        throw std::invalid_argument("Sequence evaluation requires finite endpoints, a unit direction, and finite nonnegative tMin");
+        throw std::invalid_argument(
+            "Sequence evaluation requires finite endpoints, a unit direction, and finite nonnegative tMin");
     }
-    for (std::size_t index : surfaceSequence) {
+    for (std::size_t index: surfaceSequence) {
         if (index >= surfaces.size()) {
             throw std::invalid_argument("Reflection sequence contains an invalid surface index");
         }
@@ -28,7 +29,7 @@ SequenceEvaluation evaluate_sequence(
     result.reflections_.reserve(surfaceSequence.size());
     double reflectedDistance = 0.0;
 
-    for (std::size_t expectedIndex : surfaceSequence) {
+    for (std::size_t expectedIndex: surfaceSequence) {
         // Query the full scene: intersecting only the expected object could
         // incorrectly let a trial pass through another reflector.
         const auto hit = nearest_surface(result.finalOrigin_, result.finalDirection_, surfaces, tMin);
@@ -44,7 +45,7 @@ SequenceEvaluation evaluate_sequence(
         }
         // Equivalent coplanar faces can share an edge; accept either identity.
         if (std::find(hit->coincidentSurfaceIndices_.begin(), hit->coincidentSurfaceIndices_.end(), expectedIndex)
-                == hit->coincidentSurfaceIndices_.end()) {
+            == hit->coincidentSurfaceIndices_.end()) {
             result.status_ = SequenceStatus::UnexpectedSurface;
             result.blockingSurfaceIndex_ = hit->surfaceIndex_;
             return result;
@@ -54,7 +55,7 @@ SequenceEvaluation evaluate_sequence(
         reflectedDistance += hit->distance_;
         result.reflections_.push_back({expectedIndex, result.finalOrigin_, hit->normal_, hit->distance_});
         result.finalDirection_ = (result.finalDirection_ -
-            2.0 * result.finalDirection_.dot(hit->normal_) * hit->normal_).normalized();
+                                  2.0 * result.finalDirection_.dot(hit->normal_) * hit->normal_).normalized();
     }
 
     // Orthogonal projection onto the final ray's supporting line.
@@ -73,7 +74,7 @@ SequenceEvaluation evaluate_sequence(
     // An off-axis trial is not connected to Rx by an artificial extra segment.
     if (finalDistance > tMin) {
         const auto blocker = nearest_surface(result.finalOrigin_, result.finalDirection_,
-                                              surfaces, tMin, finalDistance);
+                                             surfaces, tMin, finalDistance);
         if (blocker) {
             result.status_ = blocker->ambiguous_ ? SequenceStatus::AmbiguousHit : SequenceStatus::FinalSegmentBlocked;
             result.blockingSurfaceIndex_ = blocker->surfaceIndex_;

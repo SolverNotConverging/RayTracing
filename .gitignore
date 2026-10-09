@@ -1,6 +1,11 @@
+.idea
+
 .venv
 
 cmake-build-debug
+cmake-build-*/
 
-.idea
+/results/
+antenna_patterns
+
 

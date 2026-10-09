@@ -108,8 +108,9 @@ TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
     // Validate the receiver even when reception starts disarmed.
     intersect_receiver(ray, receiverPosition, receiverRadius);
     while (true) {
-        const auto receiverDistance = receiverArmed ? intersect_receiver(ray, receiverPosition, receiverRadius)
-                                                   : std::optional<double>{};
+        const auto receiverDistance = receiverArmed
+                                          ? intersect_receiver(ray, receiverPosition, receiverRadius)
+                                          : std::optional<double>{};
         const auto surface = nearest_surface(ray.path_.back().position_, ray.direction_, surfaces);
         const double remaining = options.maxDistance_ - travelled;
         const bool receiverFirst = receiverDistance &&

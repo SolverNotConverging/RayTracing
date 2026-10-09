@@ -1,68 +1,32 @@
 cmake_minimum_required(VERSION 4.2)
-project(RayTracing)
-
+project(RayTracing VERSION 0.2.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
-
-find_package(Eigen3 REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
-find_package(VTK REQUIRED COMPONENTS
-        CommonCore
-        CommonDataModel
-        FiltersSources
-        InteractionStyle
-        RenderingAnnotation
-        RenderingCore
-        RenderingFreeType
-        RenderingOpenGL2
-)
-
-add_executable(RayTracing src/main.cpp
-        include/EMRay.hpp
-        src/EMRay.cpp
-        src/Surface.cpp
-        src/SequenceEvaluator.cpp
-        src/PathRefinement.cpp
-        include/PathRefinement.hpp
-        include/SequenceEvaluator.hpp
-        src/Visualization.cpp
-        src/TraceConfig.cpp
-        include/TraceConfig.hpp
-        include/Visualization.hpp
-        include/Surface.hpp)
-
-target_include_directories(RayTracing
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-target_link_libraries(RayTracing
-        PRIVATE
-        Eigen3::Eigen
-        nlohmann_json::nlohmann_json
-        ${VTK_LIBRARIES}
-)
-
-vtk_module_autoinit(TARGETS RayTracing MODULES ${VTK_LIBRARIES})
-
-# Default to the editable source file even when the IDE runs in the build folder.
-target_compile_definitions(RayTracing PRIVATE
-        RAYTRACING_DEFAULT_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/trace_options.json")
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
+option(RAYTRACING_BUILD_VISUALIZATION "Build VTK and Matplot++ viewing APIs" ON)
+option(BUILD_BENCHMARKS "Build analytical spreading benchmarks" ON)
+add_subdirectory(RayTracing)
+add_executable(RayTracingApp app/main.cpp)
+set_target_properties(RayTracingApp PROPERTIES OUTPUT_NAME RayTracing)
+target_link_libraries(RayTracingApp PRIVATE RayTracing::IO)
+target_compile_definitions(RayTracingApp PRIVATE RAYTRACING_EXAMPLE_PATTERN="${CMAKE_CURRENT_SOURCE_DIR}/simple_patch.ffs")
+if (RAYTRACING_BUILD_VISUALIZATION)
+    target_link_libraries(RayTracingApp PRIVATE RayTracing::Visualization)
+    target_compile_definitions(RayTracingApp PRIVATE RAYTRACING_HAS_VISUALIZATION=1)
+endif ()
 if (BUILD_TESTING)
-    add_executable(SurfaceTests tests/SurfaceTests.cpp src/Surface.cpp src/EMRay.cpp)
-    target_include_directories(SurfaceTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(SurfaceTests PRIVATE Eigen3::Eigen)
-    add_test(NAME SurfaceTests COMMAND SurfaceTests)
-
-    add_executable(SequenceEvaluatorTests tests/SequenceEvaluatorTests.cpp
-            src/SequenceEvaluator.cpp src/Surface.cpp)
-    target_include_directories(SequenceEvaluatorTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(SequenceEvaluatorTests PRIVATE Eigen3::Eigen)
-    add_test(NAME SequenceEvaluatorTests COMMAND SequenceEvaluatorTests)
-    add_executable(PathRefinementTests tests/PathRefinementTests.cpp
-            src/PathRefinement.cpp src/SequenceEvaluator.cpp src/Surface.cpp src/EMRay.cpp)
-    target_include_directories(PathRefinementTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    target_link_libraries(PathRefinementTests PRIVATE Eigen3::Eigen)
-    add_test(NAME PathRefinementTests COMMAND PathRefinementTests)
+    foreach (test IN ITEMS SurfaceTests SequenceEvaluatorTests PathRefinementTests FieldResponseTests AntennaApiTests)
+        add_executable(${test} tests/${test}.cpp)
+        target_link_libraries(${test} PRIVATE RayTracing::IO)
+        add_test(NAME ${test} COMMAND ${test})
+    endforeach ()
+    target_compile_definitions(AntennaApiTests PRIVATE TEST_PATTERN="${CMAKE_CURRENT_SOURCE_DIR}/simple_patch.ffs")
+endif ()
+if (BUILD_BENCHMARKS)
+    find_package(Matplot++ CONFIG REQUIRED)
+    add_executable(SpreadingBenchmarks benchmarks/SpreadingBenchmarks.cpp)
+    target_link_libraries(SpreadingBenchmarks PRIVATE RayTracing::RayTracing Matplot++::matplot)
+    if (BUILD_TESTING)
+        add_test(NAME SpreadingBenchmarks COMMAND SpreadingBenchmarks --no-plots ${CMAKE_CURRENT_BINARY_DIR}/benchmark-results)
+    endif ()
 endif ()

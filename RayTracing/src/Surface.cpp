@@ -195,13 +195,15 @@ std::optional<SurfaceHit> nearest_surface(const Vec3 &origin, const Vec3 &direct
     }
     if (hits.empty()) return std::nullopt;
     SurfaceHit nearest = *std::min_element(hits.begin(), hits.end(),
-        [](const SurfaceHit &a, const SurfaceHit &b) { return a.distance_ < b.distance_; });
+                                           [](const SurfaceHit &a, const SurfaceHit &b) {
+                                               return a.distance_ < b.distance_;
+                                           });
     // Group against the actual minimum, not transitively against the previous hit.
     std::vector<Vec3> normals;
-    for (const auto &hit : hits) {
+    for (const auto &hit: hits) {
         if (hit.distance_ - nearest.distance_ > simultaneousHitTolerance) continue;
         nearest.coincidentSurfaceIndices_.push_back(hit.surfaceIndex_);
-        for (const Vec3 &normal : normals) {
+        for (const Vec3 &normal: normals) {
             // Opposite normals describe the same two-sided reflecting plane.
             if (std::min((normal - hit.normal_).norm(), (normal + hit.normal_).norm()) > equivalentNormalTolerance)
                 nearest.ambiguous_ = true;

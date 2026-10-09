@@ -37,8 +37,8 @@ struct RefinementResult {
 // Geometry must be validated once before calling. No EM fields are rebuilt.
 // Only Converged results passed the sequence/visibility, miss, and length checks.
 RefinementResult refine_path(const Vec3 &transmitterPosition, const Vec3 &launchDirection,
-    const Vec3 &receiverPosition, const std::vector<Surface> &surfaces,
-    const std::vector<std::size_t> &surfaceSequence, const RefinementOptions &options = {});
+                             const Vec3 &receiverPosition, const std::vector<Surface> &surfaces,
+                             const std::vector<std::size_t> &surfaceSequence, const RefinementOptions &options = {});
 
 const char *refinement_status_name(RefinementStatus status);
 
@@ -52,4 +52,4 @@ struct DeduplicationOptions {
 // Representatives are considered in increasing receiver miss distance.
 // Compare directly against representatives, never transitively merge clusters.
 std::vector<std::size_t> deduplicate_paths(const std::vector<RefinementResult> &results,
-    const DeduplicationOptions &options = {});
+                                           const DeduplicationOptions &options = {});
