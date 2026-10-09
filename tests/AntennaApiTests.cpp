@@ -167,6 +167,38 @@ int main() try {
   near(null.impulseResponse.taps_[0].coefficient_, 0,
        "Source null generated field");
 
+  // Colocated patch antennas must find a physical return rather than a direct ray.
+  Scene tube;
+  tube.add(Cylinder{{0, 0, -0.25}, Vec3::UnitZ(), 0.127, 0.25, false});
+  tube.add(Disk{{0, 0, -0.5}, -Vec3::UnitZ(), 0.127});
+  auto monostaticConfig = cfg;
+  monostaticConfig.rayCount = 512;
+  monostaticConfig.maxReflections = 8;
+  const Transmitter monostaticTx{Vec3::Zero(), patch};
+  const Receiver monostaticRx{Vec3::Zero(), patch};
+  const auto returned = solve(tube, monostaticTx, monostaticRx, monostaticConfig);
+  check(returned.launchedRays == monostaticConfig.rayCount,
+        "Colocated solver launched a zero-length direct direction");
+  check(!returned.impulseResponse.taps_.empty(), "Colocated patch return missing");
+  bool bottomReturn = false;
+  for (const auto &ray : returned.rays) {
+    check(ray.refinement.geometry_.receiver_->pathDistance_ > 0,
+          "Colocated solver returned a zero-length path");
+    const auto &hits = ray.refinement.geometry_.reflections_;
+    if (hits.size() == 1 && hits[0].surfaceIndex_ == 1) {
+      bottomReturn = true;
+      near(ray.refinement.geometry_.receiver_->pathDistance_, 1.0,
+           "Bottom return should travel one metre", 1e-6);
+      check(ray.field && std::isfinite(std::abs(ray.receivedCoefficient)) &&
+                std::abs(ray.receivedCoefficient) > 0,
+            "Colocated patch return has no finite field");
+    }
+  }
+  check(bottomReturn, "Bottom disk reflection was not refined");
+  const auto noReturn = solve(Scene{}, monostaticTx, monostaticRx, monostaticConfig);
+  check(noReturn.rays.empty() && noReturn.impulseResponse.taps_.empty(),
+        "Empty monostatic scene generated a direct return");
+
   // Embed the real CST pattern at both ends, plus every geometry variant.
   Scene full;
   full.add(Sphere{{10, 0, 0}, 1});

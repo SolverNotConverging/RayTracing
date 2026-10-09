@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <optional>
+#include <functional>
 
 constexpr double PI = std::numbers::pi;
 constexpr double C = 3e8;
@@ -85,9 +86,13 @@ struct TraceResult {
 // Trace one ray. After the last permitted reflection, still check the next
 // segment for reception. Escaping rays are drawn out to maxDistance_.
 // When launched inside/on the Rx sphere, reception starts after leaving it.
+// With onReception, report each segment intersecting the capture sphere and
+// continue tracing to the physical termination. The sphere is then a candidate
+// search region, not an absorbing object. Each callback receives a snapshot.
 TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
                       const Vec3 &receiverPosition, double receiverRadius,
-                      const TraceOptions &options = {});
+                      const TraceOptions &options = {},
+                      const std::function<void(const EMRay &)> &onReception = {});
 
 
 std::vector<Vec3> launch_directions(std::size_t count);

@@ -66,9 +66,8 @@ namespace rt {
     SimulationResult solve(const Scene &scene, const Transmitter &tx,
                            const Receiver &rx, const SolverConfig &settings) {
         validate_config(settings);
-        if (!tx.position.allFinite() || !rx.position.allFinite() ||
-            (tx.position - rx.position).norm() == 0)
-            throw std::invalid_argument("Tx and Rx must be finite and distinct");
+        if (!tx.position.allFinite() || !rx.position.allFinite())
+            throw std::invalid_argument("Tx and Rx must be finite");
         tx.antenna.validate(settings.frequencyHz, settings.medium);
         rx.antenna.validate(settings.frequencyHz, settings.medium);
         rx.antenna.reference_power(settings.frequencyHz, settings.medium);
@@ -89,29 +88,36 @@ namespace rt {
         // Include the exact direct direction as well as sampled rays; deduplication
         // removes repeats, and obstacles still participate in every trace.
         auto directions = launch_directions(settings.rayCount);
-        directions.push_back((rx.position - tx.position).normalized());
+        const Vec3 directOffset = rx.position - tx.position;
+        // Colocated endpoints receive reflected returns, with no zero-length direct ray.
+        if (directOffset.norm() > 0)
+            directions.push_back(directOffset.normalized());
         std::vector<RefinementResult> trials;
         for (const auto &direction: directions) {
             // Geometry discovery is independent of source-pattern nulls.
             EMRay ray(tx.position, direction, launch_polarization(direction),
                       C / settings.frequencyHz);
+            bool received = false;
             const auto traced = trace_ray(ray, scene.surfaces(), rx.position,
-                                          settings.receptionRadius, tracing);
+                                          settings.receptionRadius, tracing, [&](const EMRay &candidateRay) {
+                                              received = true;
+                                              std::vector<std::size_t> sequence;
+                                              for (const auto &hit: candidateRay.reflections_)
+                                                  sequence.push_back(hit.surfaceIndex_);
+                                              auto refined = refine_path(tx.position, direction, rx.position,
+                                                                         scene.surfaces(), sequence, refinement);
+                                              Candidate candidate;
+                                              candidate.refinement = refined;
+                                              for (const auto &point: candidateRay.path_)
+                                                  candidate.coarseVertices.push_back(point.position_);
+                                              result.candidates.push_back(std::move(candidate));
+                                              trials.push_back(std::move(refined));
+                                          });
             ++result.launchedRays;
-            ++result.traceStatusCounts.at(static_cast<std::size_t>(traced.status_));
-            if (traced.status_ != TraceStatus::Received)
-                continue;
-            std::vector<std::size_t> sequence;
-            for (const auto &hit: ray.reflections_)
-                sequence.push_back(hit.surfaceIndex_);
-            auto refined = refine_path(tx.position, direction, rx.position,
-                                       scene.surfaces(), sequence, refinement);
-            Candidate candidate;
-            candidate.refinement = refined;
-            for (const auto &point: ray.path_)
-                candidate.coarseVertices.push_back(point.position_);
-            result.candidates.push_back(std::move(candidate));
-            trials.push_back(std::move(refined));
+            // Count launches with at least one candidate as received, even though
+            // the capture sphere no longer terminates their physical propagation.
+            const auto status = received ? TraceStatus::Received : traced.status_;
+            ++result.traceStatusCounts.at(static_cast<std::size_t>(status));
         }
         for (auto index: deduplicate_paths(trials, settings.deduplication)) {
             const auto &path = trials[index];

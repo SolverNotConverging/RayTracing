@@ -1,131 +1,131 @@
-# Ray tracing solver
+# RayTracing
 
-The C++ API launches rays, refines received reflection sequences to a point
-receiver, deduplicates paths, calculates Jacobian spreading, and reconstructs
-complex electric fields and a coherent impulse response. Geometry uses specular
-PEC reflections in a homogeneous, nondispersive medium.
+Python simulations backed by a C++20 numerical solver. The solver launches rays,
+refines specular PEC paths to a point receiver, deduplicates them, calculates
+Jacobian spreading, and reconstructs complex electric fields and coherent impulse
+responses in a homogeneous, nondispersive medium. Matplotlib plots responses;
+PyVista displays geometry, antenna patterns, paths and polarization.
 
-## Library and application
+## Install in the existing environment
 
-The root CMake project builds `app/main.cpp`. All solver implementation and public
-headers live in `RayTracing/`, with its own CMake fragment. Three static libraries
-expose these targets:
+The native build requires MSVC, Eigen3, nlohmann_json and HDF5. This repository's
+Windows setup uses `C:/opt/vcpkg`. Use a Visual Studio developer PowerShell and
+the existing `.venv` (Python 3.14). All Python dependencies stay in that environment:
 
-| Target                      | API                                                        |
-|-----------------------------|------------------------------------------------------------|
-| `RayTracing::RayTracing`    | Antennas, scene, tracing, refinement, spreading and fields |
-| `RayTracing::IO`            | Core plus HDF5 and impulse CSV persistence                 |
-| `RayTracing::Visualization` | IO plus VTK views and Matplot++ plots                      |
-
-The executable target is `RayTracingApp`, with output name `RayTracing`.
-Configuration is ordinary C++ in `main.cpp`; `trace_options.json` was removed.
-
-```cpp
-#include <RayTracing/Solver.hpp>
-#include <RayTracing/ResultIO.hpp>
-#include <RayTracing/Visualization.hpp>
-
-rt::SolverConfig config;
-config.frequencyHz = 77e9;
-config.rayCount = 2000;
-config.maxReflections = 8;
-config.maxDistance = 20;
-
-rt::Scene scene;
-scene.add(rt::Sphere{{0.7, -1.2, 0}, 0.3});
-rt::Transmitter tx{{0, 0, 0}, rt::ShortDipole{1e-4, 1.0}};
-rt::Receiver rx{{-0.5, 1.4, 0}, rt::Isotropic{}};
-
-auto result = rt::solve(scene, tx, rx, config);
-rt::save_h5(result, "results/simulation.h5");
-rt::save_impulse_csv(result.impulseResponse, "results/impulse_response.csv");
-rt::plot(result.impulseResponse, "results/impulse_response.png", false);
-rt::visualize(result);  // rt::visualize(result, 0) selects one path.
+```powershell
+./.venv/Scripts/python.exe -m pip install "scikit-build-core>=0.11" "pybind11>=3" "cmake>=4.2" ninja build
+$env:CMAKE_ARGS = '-DCMAKE_TOOLCHAIN_FILE=C:/opt/vcpkg/scripts/buildsystems/vcpkg.cmake'
+./.venv/Scripts/python.exe -m pip install --no-build-isolation ".[dev,notebooks]"
+./.venv/Scripts/python.exe -m ipykernel install --sys-prefix --name raytracing --display-name "RayTracing (.venv)"
+./.venv/Scripts/python.exe -m jupyterlab
 ```
 
-`result.rays` contains converged distinct paths, spreading and optional fields.
-`result.candidates` retains refinement diagnostics and coarse received paths.
-Invalid spreading leaves the path available for inspection with no field.
-Geometry discovery continues through source-pattern nulls. An additional exact
-direct launch is included, so `launchedRays = rayCount + 1`; it undergoes the same
-visibility checks and deduplication as sampled launches.
+Open [example1.ipynb](example1.ipynb) or [example2.ipynb](example2.ipynb) with the
+**RayTracing (.venv)** kernel. Example 1 contains the original mixed geometry and
+horizontal CST transmitter. Example 2 has a cylinder of radius 0.127 m from z=0
+to -0.5 m, open at the top, with a bottom disk. Both CST patches face downward
+at (0.005, 0, 0) m. The common 5 mm shift avoids the exact axial caustic while
+retaining monostatic reception. Set `source_shift = 0` to inspect that singular
+case. Each notebook saves its HDF5, CSV and images under `results/exampleN`.
 
-## Tx and Rx antennas
+There is one complete Python package. Matplotlib and PyVista are installed as
+Python dependencies and imported only when rendering. PyVista supplies its own
+Python VTK dependency; the C++ solver neither includes nor links VTK. The Windows
+wheel bundles its HDF5 runtime and CST example pattern. The C++ application and
+native rendering interfaces have been removed in this breaking release.
 
-Both endpoints use `rt::Antenna`. Its `orientation` maps local antenna coordinates
-into world coordinates and must be a proper rotation. Positions are separate.
+## Python API
 
-| Model                 | Parameters and local convention                                                             |
-|-----------------------|---------------------------------------------------------------------------------------------|
-| `Isotropic`           | Spherical theta/phi or circular polarization; complex source amplitude                      |
-| `ShortDipole`         | Effective uniform-current length and complex current; local z                               |
-| `ThinWireDipole`      | Length and complex feed current; sinusoidal current, centre fed, local z                    |
-| `RectangularAperture` | Width, height and uniform complex tangential Ex/Ey; local +z radiation, infinite PEC baffle |
-| Imported pattern      | CST `.ffs` or HFSS `.ffd`, phase convention and field scaling; power reference for Rx       |
+```python
+import raytracing as rt
 
-An isotropic Rx still selects polarization, with unit directional amplitude.
-Its source amplitude setting applies to Tx use. Its spherical polarization basis
-has a pole convention. Circular labels mean `(e_theta +/- i e_phi)/sqrt(2)` under
-the solver's time convention. `receiveCalibration` supplies an explicit complex
-Rx port amplitude/phase calibration.
+scene = rt.Scene()
+scene.add(rt.Sphere([0.7, -1.2, 0], 0.3))
+patch = rt.load_farfield(rt.example_pattern())
+patch.rotate([0, 1, 0], -90)  # Native -z beam rotated toward +x.
+tx = rt.Transmitter([0, 0, 0], patch)
+rx = rt.Receiver([-0.5, 1.4, 0], rt.Isotropic())
+config = rt.SolverConfig(frequency_hz=77e9, ray_count=2000, max_reflections=8)
+result = rt.solve(scene, tx, rx, config)
 
-```cpp
-rt::FarfieldImportOptions options;
-options.inputConvention = rt::PhasorConvention::PositiveTime;
-tx.antenna = rt::load_farfield("antenna_patterns/simple_patch.ffs", options);
-tx.antenna.rotate(rt::Vec3::UnitY(), -90.0); // Supplied pattern's -z lobe toward +x.
-rx.antenna = rt::load_farfield("antenna_patterns/simple_patch.ffs", options);
-rx.antenna.rotate(rt::Vec3::UnitZ(), 30.0);
+vertices = result.rays[0].vertices  # N-by-3 NumPy coordinates.
+response = rt.frequency_response(result.impulse_response)
+rt.save_h5(result, "simulation.h5")
+rt.save_impulse_csv(result.impulse_response, "impulse_response.csv")
+figure = rt.plot(result.impulse_response, "impulse_response.png")
+viewer = rt.visualize(result)
+viewer.screenshot("scene.png")
+viewer.close()
 ```
 
-The supplied CST version 3.0 file has five frequencies from 76 to 78 GHz, with
-361 azimuth and 181 elevation samples each. At 77 GHz it records 0.3823696 W
-radiated, 0.4978351 W accepted and 0.5 W stimulated power. Both complex spherical
-field components, powers and exported coordinate metadata are preserved. Exported
-axes initialize antenna orientation; exported position is metadata, while the
-endpoint position controls placement.
+Coordinates and lengths use metres; frequencies use Hz; rotations use degrees.
+Vector and matrix results are NumPy arrays, fields are complex-valued. Configurations
+and antenna definitions are editable; solve results expose numerical diagnostics
+through read-only properties. `solve` releases the Python GIL while computing.
 
-`rotate(axis, degrees)` composes a right-hand rotation about a world-space axis
-with the existing orientation, including exported CST axes. The axis is normalized
-automatically and must be nonzero; angles are in degrees. Repeated calls compose
-in call order. Both field directions and complex polarization rotate, and the
-same orientation drives VTK and is saved in HDF5. For a +z-facing pattern, +90
-degrees about y points it toward +x, while -90 degrees points it toward -x.
-The supplied patch has its strongest lobe near -z, so the demo uses -90 degrees
-about y to aim it roughly toward horizontal +x.
+| API | Purpose |
+| --- | --- |
+| `Scene.add(Sphere / Rectangle / Disk / Cylinder / Triangle)` | Construct geometry |
+| `Isotropic`, `ShortDipole`, `ThinWireDipole`, `RectangularAperture` | Analytical antenna models |
+| `load_farfield(path, options)` | Import CST `.ffs` or rectangular-grid HFSS `.ffd` |
+| `solve(scene, tx, rx, config)` | Compute paths, fields and impulse response |
+| `evaluate_sequence`, `refine_path`, `calculate_spreading`, `deduplicate_paths` | Lower-level numerical operations |
+| `update_receiver(result, antenna)` | Apply a new Rx antenna without retracing |
+| `save_h5`, `load_h5`, `save_impulse_csv`, `load_impulse_csv` | Persist and reload results |
+| `frequency_response(response, offset_hz=0)` | Evaluate the complex channel response |
+| `plot`, `plot_csv` | Return a Matplotlib Figure; optionally save it |
+| `visualize`, `visualize_h5` | Return a PyVista Plotter |
 
-CST version 3.0 Farfield Source and rectangular theta/phi HFSS exports are
-supported. HFSS accepts frequency-independent data or `Frequencies`/`Frequency`
-blocks in the [documented FFD layouts](https://help.agi.com/stk/12.8.0/Content/comm/complexANSYSffdSamples.htm).
-HFSS lacks input-power metadata: supply `inputPowerWatts` for Rx use. Select
-`receivePowerReference` as accepted, radiated or stimulated power (default:
-accepted). Supplied HFSS input power populates accepted/stimulated references;
-a radiated reference requires separately supplied pattern metadata.
+`result.rays` contains distinct converged paths with geometry, spreading and optional
+fields. `result.candidates` retains coarse paths and refinement failures. Invalid
+spreading retains the geometry without assigning a field. The reception sphere
+collects candidates along every ray segment; it does not absorb the ray at the
+first near-pass. Distinct endpoints get one additional exact direct launch.
+Colocated endpoints receive reflected returns without a zero-length direct ray.
+Refinement defaults to a 1e-10 m receiver tolerance. Cylinder rim hits are marked
+`UNRESOLVED_EDGE`; receiver caustics have `CAUSTIC` spreading status.
 
-Fields are canonical Cartesian complex `rE` coefficients in volts, with outgoing
-radial propagation removed. `coefficientScale` converts export units/reference
-radius to that convention. Positive-time input is conjugated into
-`exp(-i omega t)`; choose the option matching the export, since files do not
-declare it. Angular interpolation is Cartesian bilinear followed by transverse
-projection; frequency interpolation is complex linear. Complete azimuth grids
-wrap, and coverage is enforced without extrapolation. Custom sampled analytical
-patterns can be supplied through `FarfieldData` with explicit grids, Cartesian
-coefficients and powers.
+## Antennas and visualization
 
-VTK replaces each non-isotropic endpoint sphere with its oriented pattern.
-Its radial display uses `|rE| / max |rE|`; `ViewOptions::patternScale` sets the peak
-display radius in metres and leaves the physical fields unchanged.
+The supplied CST patch contains five frequencies from 76 to 78 GHz. Its main
+beam points along -z. Antenna orientation maps local coordinates to world
+coordinates; `rotate(axis, degrees)` composes a right-hand world-axis rotation.
+Endpoints copy antenna definitions, so their orientations can be changed independently.
+Imported pattern samples are shared and read-only.
 
-Refined rays are colored by their individual incident field magnitude at Rx:
-`20 log10(|E_p| / max |E|)`, using the strongest solved ray as the reference even
-when selecting a subset. The VTK color bar spans -60 to 0 dB by default; purple
-is weak and yellow is strong. Each complete ray has one color representing its
-Rx field, before Rx antenna weighting or coherent tap addition. Zero fields and
-values below the display range use its floor; unavailable fields appear grey.
-Set `ViewOptions::fieldDynamicRangeDb` to change the range or
-`colorRaysByField=false` to restore cyan paths. Antenna colors stay red/green.
+`FarfieldImportOptions` selects `input_convention`, `receive_power_reference`,
+`input_power_watts`, `coefficient_scale` and `honor_export_axes`. The default CST
+input convention is positive-time, conjugated into the solver's `exp(-i omega t)`
+convention. HFSS exports need an explicit input power for Rx use. Fields are
+Cartesian complex `rE` coefficients in volts. Angular interpolation is Cartesian
+bilinear followed by transverse projection; frequency interpolation is complex
+linear. Complete azimuth grids wrap; partial coverage does not extrapolate.
+
+`rt.plot` returns an ordinary Matplotlib Figure; use its axes to customize it and
+`matplotlib.pyplot.close(figure)` when finished. PyVista views accept
+`options=rt.ViewOptions(...)`, including `ray_indices`, `pattern_scale`,
+`field_dynamic_range_db`, `show_polarization` and `show_unresolved_candidates`.
+The default off-screen Plotter supports notebook display and image export:
+
+```python
+saved = rt.load_h5("simulation.h5")
+viewer = rt.visualize(saved, options=rt.ViewOptions(ray_indices=[0]))
+viewer.show(jupyter_backend="static")
+```
+
+You can also use PyVista's interactive desktop view with
+`ViewOptions(off_screen=False, notebook=False)` and `viewer.show()`. This is a
+runtime presentation choice within the same package.
+
+Patterns use normalized radial magnitude for display, preserving world orientation.
+Red denotes Tx and green Rx. Paths are colored by incident Rx field magnitude,
+`20 log10(|E_p| / max |E|)`, before receive weighting or coherent addition. The
+reference is the strongest full-result path even when displaying a subset.
+Unavailable fields appear grey. Polarization ellipses have bounded display size.
+Unresolved corner and edge candidates can be displayed in orange.
 
 ## Fields and receive response
+
 
 For path p with physical length L, medium index n, angular Jacobian J and PEC
 normals n_j, the solver uses
@@ -135,7 +135,7 @@ $$P_j=-I+2\mathbf n_j\mathbf n_j^T,\qquad
 {\sqrt{|\det J_p|}}\exp(+i\,2\pi f nL_p/c).$$
 
 F_t is the source `rE` vector. The low-level reference-distance factor cancels
-its source-field conversion. One common `config.commonSourceReference` normalizes
+its source-field conversion. One common `config.common_source_reference` normalizes
 the fields, preserving directional amplitudes. The medium uses
 `n=sqrt(epsilon_r mu_r)` and `eta=376.730313668 sqrt(mu_r/epsilon_r)` ohms.
 The existing `c=3e8 m/s` is retained.
@@ -154,77 +154,45 @@ retains its Hermitian analyzer convention.
 The output is a normalized field channel with reciprocal Rx gain weighting.
 Absolute terminal voltage, mismatch and S-parameters require a specified port or
 effective-length calibration. Incident vector fields are retained separately.
-`rt::update_receiver(result, antenna)` reapplies an Rx pattern/orientation without
+`rt.update_receiver(result, antenna)` reapplies an Rx pattern/orientation without
 tracing again.
 
 $$h(t)=\sum_p a_p\delta(t-\tau_p),\quad \tau_p=nL_p/c,\qquad
 H(\nu)=\sum_p a_p\exp(+i\,2\pi\nu\tau_p).$$
 
-Carrier phase is already in a_p. Delays within `delayToleranceSeconds` of each
+Carrier phase is already in a_p. Delays within `delay_tolerance_seconds` of each
 group's earliest delay merge coherently. The default 1e-13 s tolerance handles
 numerical equality; bandwidth and pulse shaping are separate inputs. Plots show
 absolute delay, linear magnitude and wrapped phase. Phase below 1e-12 times the
 strongest tap is omitted. Receiver caustics are detected; earlier caustic crossings
 and their phase shifts remain outside the current model.
 
-## Save, reload and view
+## Persistence
 
-```cpp
-auto saved = rt::load_h5("results/simulation.h5");
-rt::visualize(saved);
-rt::visualize_h5("results/simulation.h5");
-auto response = rt::load_impulse_csv("results/impulse_response.csv");
-rt::plot(response);
-rt::plot_csv("results/impulse_response.csv", "replotted.png", false);
-```
-
-HDF5 schema version 1 stores settings, all geometry, Tx/Rx definitions and embedded
-patterns, candidate/refined paths, spreading diagnostics, vector fields, coherent
-taps and tracing counts. Groups are `/meta`, `/settings`, `/scene`, `/transmitter`,
-`/receiver`, `/paths`, `/candidates`, `/response` and `/diagnostics`. Complete
-records and definitions are UTF-8 JSON datasets. Native numeric datasets expose
-pattern coefficients `(frequency, phi, theta, xyz, real/imag)`, path vertices and
-offsets, lengths, complex fields, Jacobians and taps. Reloading needs no original
-antenna file.
-
+HDF5 schema version 1 stores settings, geometry, both antenna definitions and
+embedded patterns, candidate/refined paths, spreading diagnostics, vector fields,
+coherent taps and tracing counts. Reloading requires no original antenna file.
 CSV preserves carrier frequency, phase convention, Rx model, complex taps, vector
-sums and contributing path indices. Magnitude/phase columns aid inspection;
-undefined phases are blank. Path indices map through `result.responseRayIndices`
-into `result.rays`.
+sums and contributing path indices. These indices map through
+`result.response_ray_indices` into `result.rays`.
 
-## Build and run
+## Build and validation
 
-Dependencies are Eigen3, nlohmann_json, HDF5, VTK and Matplot++ (vcpkg packages
-`eigen3`, `nlohmann-json`, `hdf5`, `vtk`, `matplotplusplus`). Gnuplot must be on
-`PATH` for plotting. Use a compiler developer shell and the existing CMake/vcpkg
-configuration.
+CMake exposes `RayTracing::RayTracing` for numerics and `RayTracing::IO` for
+persistence. Python bindings are in `python/bindings`; Python rendering lives in
+`python/raytracing/visualization.py`. There are no native visualization targets.
 
 ```powershell
-cmake --build cmake-build-debug --target RayTracingApp
-./cmake-build-debug/RayTracing.exe
-./cmake-build-debug/RayTracing.exe --no-gui --output results --screenshot results/scene.png
-./cmake-build-debug/RayTracing.exe --isotropic --no-gui --output results/isotropic
-./cmake-build-debug/RayTracing.exe --load results/simulation.h5 --no-gui --output results/reloaded
-./cmake-build-debug/RayTracing.exe --plot-csv results/impulse_response.csv --no-gui --output results/replotted
+./.venv/Scripts/python.exe -m build --wheel --no-isolation
+./.venv/Scripts/cmake.exe -S . -B cmake-build-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
+./.venv/Scripts/cmake.exe --build cmake-build-tests
+./.venv/Scripts/ctest.exe --test-dir cmake-build-tests --output-on-failure
+./.venv/Scripts/python.exe -m pytest tests/python
 ```
 
-The demo uses the supplied CST Tx rotated toward horizontal +x and an isotropic Rx. It exports `simulation.h5`,
-`impulse_response.csv` and a magnitude/phase PNG after tracing. Interactive mode
-opens Matplot++ first; close it to proceed to VTK. `--no-gui` still exports the
-plot, and `--screenshot` exports VTK without an interactive window in that mode.
-For a numerical build without VTK/Matplot++, configure
-`-DRAYTRACING_BUILD_VISUALIZATION=OFF -DBUILD_BENCHMARKS=OFF`.
-
-## Validation
-
-```powershell
-cmake --build cmake-build-debug
-ctest --test-dir cmake-build-debug --output-on-failure
-```
-
-Six suites cover geometry, sequence replay, refinement, field/impulse math,
-antennas/imports/API/persistence and analytical spreading. Antenna tests use the
-real CST file and synthetic independent/multifrequency HFSS fixtures. They check
-amplitude/phase, polarization, rotations, nulls, shared source normalization,
-Rx replacement and nonempty/empty/zero-field HDF5/CSV round trips. Analytical
-spreading formulas and comparison plots are in [benchmarks/README.md](benchmarks/README.md).
+Seven C++ suites cover surfaces, sequence replay, refinement, fields, antennas and
+persistence, cylinder returns and analytical spreading. Python tests exercise the
+bindings, NumPy ownership, pattern rotation, shifted cylinder, persistence, plots
+and installed-package runtime. Both notebooks are executable integration examples.
+See [benchmarks/README.md](benchmarks/README.md) for analytical formulas and
+Matplotlib comparison plots.

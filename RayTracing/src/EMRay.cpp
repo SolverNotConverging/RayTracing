@@ -92,7 +92,8 @@ std::optional<double> intersect_receiver(
 
 TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
                       const Vec3 &receiverPosition, double receiverRadius,
-                      const TraceOptions &options) {
+                      const TraceOptions &options,
+                      const std::function<void(const EMRay &)> &onReception) {
     if (options.maxReflections_ < 0 || !std::isfinite(options.maxDistance_) ||
         options.maxDistance_ <= 0.0 || !std::isfinite(options.refractiveIndex_) ||
         options.refractiveIndex_ <= 0.0) {
@@ -108,22 +109,28 @@ TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
     // Validate the receiver even when reception starts disarmed.
     intersect_receiver(ray, receiverPosition, receiverRadius);
     while (true) {
-        const auto receiverDistance = receiverArmed
+        const auto receiverDistance = (receiverArmed || (onReception && reflections > 0))
                                           ? intersect_receiver(ray, receiverPosition, receiverRadius)
                                           : std::optional<double>{};
         const auto surface = nearest_surface(ray.path_.back().position_, ray.direction_, surfaces);
         const double remaining = options.maxDistance_ - travelled;
         const bool receiverFirst = receiverDistance &&
                                    (!surface || *receiverDistance < surface->distance_);
+        if (receiverFirst && onReception && *receiverDistance <= remaining) {
+            EMRay received = ray;
+            received.propagate(*receiverDistance, options.refractiveIndex_);
+            onReception(received);
+        }
+        const bool stopAtReceiver = receiverFirst && !onReception;
 
-        if (!receiverFirst && !surface) {
+        if (!stopAtReceiver && !surface) {
             // No future event: show a finite outgoing segment rather than an
             // infinite ray. This continuation still accumulates physical OPL.
             ray.propagate(remaining, options.refractiveIndex_);
             return {TraceStatus::Escaped, reflections, options.maxDistance_};
         }
 
-        const double nextDistance = receiverFirst ? *receiverDistance : surface->distance_;
+        const double nextDistance = stopAtReceiver ? *receiverDistance : surface->distance_;
         if (nextDistance > remaining) {
             ray.propagate(remaining, options.refractiveIndex_);
             return {TraceStatus::DistanceLimit, reflections, options.maxDistance_};
@@ -133,7 +140,7 @@ TraceResult trace_ray(EMRay &ray, const std::vector<Surface> &surfaces,
         travelled += nextDistance;
         if ((ray.path_.back().position_ - receiverPosition).norm() > receiverRadius)
             receiverArmed = true;
-        if (receiverFirst) {
+        if (stopAtReceiver) {
             return {TraceStatus::Received, reflections, travelled};
         }
         if (surface->ambiguous_) {

@@ -1,36 +1,23 @@
 # Analytical spreading benchmarks
 
-`SpreadingBenchmarks.cpp` validates the geometry-only calculator in
-`RayTracing/include/RayTracing/Spreading.hpp` and `RayTracing/src/Spreading.cpp`, and uses Matplot++ to plot
-numerical spreading against independent closed-form predictions.
+`SpreadingBenchmarks.cpp` validates the numerical spreading calculator against
+independent closed-form predictions and writes CSV data. `plot_results.py` creates
+the comparison figures using Matplotlib in the existing `.venv`.
 
 ## Build and run
 
-The project dependencies are Eigen3, nlohmann_json, HDF5 and optionally VTK. Benchmarks
-add the CMake package `Matplot++` and require Gnuplot on `PATH` for plot export.
-With the project's vcpkg setup, the package name is `matplotplusplus`.
+From a compiler developer shell, configure the project with the existing vcpkg
+toolchain. The native dependencies are Eigen3, nlohmann_json and HDF5.
 
 ```powershell
-cmake -S . -B cmake-build-debug -DBUILD_BENCHMARKS=ON
-cmake --build cmake-build-debug --target SpreadingBenchmarks
-./cmake-build-debug/SpreadingBenchmarks.exe benchmarks/results
-ctest --test-dir cmake-build-debug --output-on-failure
+./.venv/Scripts/cmake.exe --build cmake-build-tests --target SpreadingBenchmarks
+./cmake-build-tests/SpreadingBenchmarks.exe benchmarks/results
+./.venv/Scripts/python.exe benchmarks/plot_results.py benchmarks/results
+./.venv/Scripts/ctest.exe --test-dir cmake-build-tests --output-on-failure
 ```
 
-Run these commands in a compiler developer shell, using the same generator and
-vcpkg toolchain as the existing build. Substitute your CMake executable path if
-it is not on `PATH`. The application also calculates and prints spreading for
-each converged, deduplicated path.
-
-Use `--no-plots` to run numerical validation without launching Gnuplot:
-
-```powershell
-./cmake-build-debug/SpreadingBenchmarks.exe --no-plots benchmarks/results
-```
-
-CTest uses that mode and writes its data into the build directory. Set
-`BUILD_BENCHMARKS=OFF` to omit the benchmark target. The solver also uses Matplot++
-for its impulse-response plot.
+CTest writes numerical data into the build directory. Set `BUILD_BENCHMARKS=OFF`
+to omit the benchmark executable. Plotting is a separate Python operation.
 
 ## Definition and normalization
 

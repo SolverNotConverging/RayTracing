@@ -1,7 +1,4 @@
 #include "Spreading.hpp"
-// Matplot++ includes Windows GDI's Rectangle function on Windows.
-using RectangleShape = Rectangle;
-#include <matplot/matplot.h>
 
 #include <algorithm>
 #include <cmath>
@@ -9,7 +6,6 @@ using RectangleShape = Rectangle;
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <numbers>
 #include <stdexcept>
 #include <string>
@@ -54,7 +50,7 @@ namespace {
     Case plane(double b) {
         return {
             Vec3(2, 0, 0), -Vec3::UnitX(), Vec3(b, 0, 0),
-            {RectangleShape{Vec3::Zero(), Vec3::UnitY(), Vec3::UnitZ(), 20, 20}}, {0}, {2 + b, 2 + b}
+            {Rectangle{Vec3::Zero(), Vec3::UnitY(), Vec3::UnitZ(), 20, 20}}, {0}, {2 + b, 2 + b}
         };
     }
 
@@ -65,8 +61,8 @@ namespace {
         return {
             Vec3::Zero(), d, secondHit + b * d,
             {
-                RectangleShape{Vec3(1, 0, 0), Vec3::UnitY(), Vec3::UnitZ(), 20, 20},
-                RectangleShape{Vec3(-1, 0, 0), Vec3::UnitY(), Vec3::UnitZ(), 20, 20}
+                Rectangle{Vec3(1, 0, 0), Vec3::UnitY(), Vec3::UnitZ(), 20, 20},
+                Rectangle{Vec3(-1, 0, 0), Vec3::UnitY(), Vec3::UnitZ(), 20, 20}
             },
             {0, 1}, {length, length}
         };
@@ -103,7 +99,7 @@ namespace {
                     shape.c_ = rotation * shape.c_ + shift;
                 } else {
                     shape.center_ = rotation * shape.center_ + shift;
-                    if constexpr (std::is_same_v<T, RectangleShape>) {
+                    if constexpr (std::is_same_v<T, Rectangle>) {
                         shape.u_ = rotation * shape.u_;
                         shape.v_ = rotation * shape.v_;
                     } else if constexpr (std::is_same_v<T, Disk>) shape.normal_ = rotation * shape.normal_;
@@ -131,58 +127,11 @@ namespace {
         check(error < tolerance, "Analytical spreading mismatch: " + std::to_string(error));
         return error;
     }
-
-    void plot_comparison(const std::filesystem::path &path, const std::string &title,
-                         const std::vector<double> &x, const std::vector<double> &analytical,
-                         const std::vector<double> &numerical, const std::vector<double> &errors) {
-        using namespace matplot;
-        auto f = figure(true);
-        f->size(1200, 500);
-        subplot(1, 2, 0);
-        plot(x, analytical, "b-")->line_width(2);
-        hold(on);
-        plot(x, numerical, "ro")->marker_size(3);
-        xlabel("Distance after reflection / receiver distance (m)");
-        ylabel("Field factor (1 m source reference)");
-        std::string displayTitle = title;
-        std::replace(displayTitle.begin(), displayTitle.end(), '_', ' ');
-        if (title == "sphere_concave") displayTitle += " (focus at 1.5 m)";
-        matplot::title(displayTitle);
-        legend({"Analytical", "Jacobian"});
-        grid(on);
-        subplot(1, 2, 1);
-        double minimum = 1.0, maximum = 1e-16;
-        for (double error: errors) {
-            if (!std::isfinite(error)) continue;
-            minimum = std::min(minimum, error);
-            maximum = std::max(maximum, error);
-        }
-        // Matplot++ suppresses axes whose data range is numerically tiny. Scale the
-        // displayed error units explicitly; the CSV retains unscaled errors.
-        const int exponent = static_cast<int>(std::floor(std::log10(maximum)));
-        const double unit = std::pow(10.0, exponent);
-        std::vector<double> scaledErrors;
-        for (double error: errors) scaledErrors.push_back(error / unit);
-        semilogy(x, scaledErrors, "k-");
-        const double lower = std::pow(10.0, std::floor(std::log10(minimum / unit)) - 1);
-        const double upper = std::pow(10.0, std::ceil(std::log10(maximum / unit)) + 1);
-        ylim({lower, upper});
-        xlabel("Distance (m)");
-        ylabel("Maximum relative error (units of 1e" + std::to_string(exponent) + ")");
-        matplot::title("Singular values, area and field factor");
-        grid(on);
-        // Gnuplot treats backslashes in quoted Windows paths as escapes.
-        check(save(f, path.generic_string()), "Unable to save plot: " + path.string());
-    }
 }
 
 int main(int argc, char **argv) try {
-    bool plots = true;
-    std::filesystem::path output = "benchmarks/results";
-    for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--no-plots") plots = false;
-        else output = argv[i];
-    }
+    if (argc > 2) throw std::invalid_argument("Usage: SpreadingBenchmarks [output_directory]");
+    const std::filesystem::path output = argc == 2 ? argv[1] : "benchmarks/results";
     std::filesystem::create_directories(output);
     std::ofstream csv(output / "spreading.csv");
     check(bool(csv), "Cannot open benchmark CSV");
@@ -197,7 +146,6 @@ int main(int argc, char **argv) try {
         "two_spheres"
     };
     for (const auto &name: names) {
-        std::vector<double> distances, analytical, numerical, errors;
         double caseError = 0;
         for (int i = 0; i <= 60; ++i) {
             const double b = name == "two_planes"
@@ -216,13 +164,7 @@ int main(int argc, char **argv) try {
             else if (name == "two_planes") scene = two_planes(b);
             else if (name == "two_spheres") scene = two_spheres(b);
             if (scene.expectedLengths.cwiseAbs().minCoeff() < 1e-6) {
-                // Break plotted curves at the singularity, rather than joining
-                // the two finite samples across an infinite GO amplitude.
-                distances.push_back(b);
-                const double nan = std::numeric_limits<double>::quiet_NaN();
-                analytical.push_back(nan);
-                numerical.push_back(nan);
-                errors.push_back(nan);
+                csv << name << ',' << b << ",nan,nan,nan,nan,nan,nan,nan,nan,nan\n";
                 continue; // Separate caustic test below.
             }
             const auto result = evaluate(scene);
@@ -240,14 +182,9 @@ int main(int argc, char **argv) try {
                     << result.singularValues_[0] << ',' << result.singularValues_[1] << ','
                     << lengths.prod() << ',' << result.areaPerSolidAngle_ << ',' << expectedFactor << ','
                     << *result.fieldFactor_ << ',' << error << '\n';
-            distances.push_back(b);
-            analytical.push_back(expectedFactor);
-            numerical.push_back(*result.fieldFactor_);
-            errors.push_back(std::max(error, 1e-16));
         }
         maximumError = std::max(maximumError, caseError);
         std::cout << name << ": maximum relative error " << caseError << '\n';
-        if (plots) plot_comparison(output / (name + ".png"), name, distances, analytical, numerical, errors);
     }
 
     // Near and at a concave sphere's axial focus: b = a R / (2a - R).
@@ -269,7 +206,7 @@ int main(int argc, char **argv) try {
     // A central ray on an aperture edge has no two-sided smooth neighbourhood.
     Case edge{
         Vec3(1, 0, 0), -Vec3::UnitX(), Vec3(1, 0, 0),
-        {RectangleShape{Vec3(0, 1, 0), Vec3::UnitY(), Vec3::UnitZ(), 1, 1}}, {0}, {2, 2}
+        {Rectangle{Vec3(0, 1, 0), Vec3::UnitY(), Vec3::UnitZ(), 1, 1}}, {0}, {2, 2}
     };
     check(evaluate(edge).status_ == SpreadingStatus::InvalidPerturbation, "Aperture-edge derivative accepted");
     bool rejected = false;
@@ -299,7 +236,7 @@ int main(int argc, char **argv) try {
     std::ofstream convergence(output / "convergence.csv");
     check(bool(convergence), "Cannot open convergence CSV");
     convergence << std::setprecision(17) << "actual_angular_step,relative_area_error\n";
-    std::vector<double> steps, convergenceErrors;
+    std::vector<double> convergenceErrors;
     const auto scene = curved(2, 3, 1, std::numbers::pi / 3);
     for (double h: {0.02, 0.01, 0.005, 0.002, 0.001, 0.0002, 0.0001, 0.00002, 0.00001, 0.000002}) {
         SpreadingOptions options;
@@ -309,29 +246,12 @@ int main(int argc, char **argv) try {
         const auto result = evaluate(scene, options);
         check(result.status_ == SpreadingStatus::Valid, "Convergence sample failed");
         const double error = relative(result.areaPerSolidAngle_, scene.expectedLengths.prod());
-        steps.push_back(result.angularStep_);
         convergenceErrors.push_back(std::max(error, 1e-16));
         convergence << result.angularStep_ << ',' << error << '\n';
     }
     const double errorRatio = convergenceErrors[0] / convergenceErrors[1];
     check(errorRatio > 3.5 && errorRatio < 4.5, "Central differences did not show second-order convergence");
     ++checks;
-    if (plots) {
-        using namespace matplot;
-        auto f = figure(true);
-        f->size(850, 550);
-        loglog(steps, convergenceErrors, "bo-");
-        hold(on);
-        std::vector<double> secondOrder;
-        for (double step: steps) secondOrder.push_back(convergenceErrors.front() * std::pow(step / steps.front(), 2));
-        loglog(steps, secondOrder, "k--");
-        xlabel("Actual finite-difference step (rad locally)");
-        ylabel("Relative error in area per solid angle");
-        title("Oblique sphere: central-difference convergence");
-        legend({"Measured", "Second-order reference"});
-        grid(on);
-        check(save(f, (output / "convergence.png").generic_string()), "Unable to save convergence plot");
-    }
     check(bool(csv) && bool(convergence), "Failed writing benchmark data");
     std::ofstream summary(output / "summary.txt");
     summary << std::setprecision(10) << "Passed " << checks << " analytical and diagnostic checks.\n"

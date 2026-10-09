@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <utility>
 
+
 namespace {
     bool positive_finite(double value) { return std::isfinite(value) && value > 0.0; }
 
@@ -23,6 +24,22 @@ namespace {
             const auto &b = geometry.reflections_[i];
             if ((a.position_ - b.position_).norm() <= tolerance &&
                 std::min((a.normal_ - b.normal_).norm(), (a.normal_ + b.normal_).norm()) > equivalentNormalTolerance)
+                return true;
+        }
+        return false;
+    }
+
+    bool touches_cylinder_rim(const SequenceEvaluation &geometry, const std::vector<Surface> &surfaces,
+                              double tolerance) {
+        for (const auto &hit: geometry.reflections_) {
+            const auto *cylinder = std::get_if<Cylinder>(&surfaces.at(hit.surfaceIndex_));
+            if (!cylinder) continue;
+            const Vec3 offset = hit.position_ - cylinder->center_;
+            const double axial = offset.dot(cylinder->axis_);
+            const double radial = (offset - axial * cylinder->axis_).norm();
+            // A rim has no smooth reflecting neighbourhood, including an open end.
+            if (cylinder->halfLength_ - std::abs(axial) <= tolerance &&
+                cylinder->radius_ - radial <= tolerance)
                 return true;
         }
         return false;
@@ -97,6 +114,8 @@ RefinementResult refine_path(const Vec3 &transmitterPosition, const Vec3 &launch
                 result.status_ = RefinementStatus::PathTooLong;
             else if (collapsing_corner(result.geometry_, options.cornerSeparationTolerance_))
                 result.status_ = RefinementStatus::UnresolvedCorner;
+            else if (touches_cylinder_rim(result.geometry_, surfaces, options.cornerSeparationTolerance_))
+                result.status_ = RefinementStatus::UnresolvedEdge;
             else
                 result.status_ = RefinementStatus::Converged;
             return result;
@@ -178,6 +197,7 @@ const char *refinement_status_name(RefinementStatus status) {
         case RefinementStatus::IterationLimit: return "iteration limit";
         case RefinementStatus::PathTooLong: return "path exceeds distance limit";
         case RefinementStatus::UnresolvedCorner: return "unresolved corner (retain received candidate)";
+        case RefinementStatus::UnresolvedEdge: return "unresolved surface edge (retain received candidate)";
     }
     return "unknown";
 }

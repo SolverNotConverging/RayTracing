@@ -13,7 +13,7 @@ enum class SpreadingStatus {
 struct SpreadingOptions {
     double angularStep_ = 1e-4;
     int maxStepHalvings_ = 8;
-    double receiverTolerance_ = 1e-6; // Require a refined point-receiver path.
+    double receiverTolerance_ = 1e-10; // Require a refined point-receiver path.
     double relativeDerivativeTolerance_ = 1e-5;
     double absoluteDerivativeTolerance_ = 1e-8; // metres per angular coordinate
     double minimumSingularValue_ = 1e-7; // metres; near-caustic cutoff

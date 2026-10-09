@@ -431,7 +431,7 @@ namespace rt {
                    {
                        {"name", "RayTracing"},
                        {"version", 1},
-                       {"solverVersion", "0.2.0"},
+                       {"solverVersion", RAYTRACING_VERSION},
                        {"lengthUnit", "m"},
                        {"delayUnit", "s"},
                        {"fieldUnit", "V/m"},
