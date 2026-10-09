@@ -31,7 +31,11 @@ namespace rt {
         f->size(1200, 760);
         const double lastDelay =
                 delays.empty() ? 1.0 : std::max(1.0, delays.back() * 1.05);
-        subplot(2, 1, 0);
+        auto magnitudeAxes = subplot(2, 1, 0);
+        // Explicit margins reserve space for titles, ticks and the shared delay label.
+        // Default subplot spacing can overlap text in the interactive Gnuplot window.
+        magnitudeAxes->position({0.14f, 0.59f, 0.81f, 0.31f});
+        magnitudeAxes->font_size(10);
         if (delays.empty())
             matplot::plot(std::vector<double>{0, lastDelay}, std::vector<double>{0, 0},
                           "b-");
@@ -39,15 +43,16 @@ namespace rt {
             stem(delays, magnitudes, "bo-")->line_width(1.5).marker_size(4);
         xlim({0, lastDelay});
         ylim({0, maximum > 0 ? maximum * 1.15 : 1.0});
-        xlabel("Absolute propagation delay (ns)");
         ylabel("Magnitude (common source reference)");
         std::ostringstream carrier;
         carrier << response.frequencyHz_ / 1e9;
         title(delays.empty()
                   ? "Impulse response: no valid field paths"
-                  : "Ideal impulse response: magnitude (" + carrier.str() + " GHz)");
+                  : "Impulse response magnitude (" + carrier.str() + " GHz)");
         grid(on);
-        subplot(2, 1, 1);
+        auto phaseAxes = subplot(2, 1, 1);
+        phaseAxes->position({0.14f, 0.13f, 0.81f, 0.31f});
+        phaseAxes->font_size(10);
         if (phaseDelays.empty())
             matplot::plot(std::vector<double>{0, lastDelay}, std::vector<double>{0, 0},
                           "w-");
@@ -59,7 +64,7 @@ namespace rt {
         ylabel("Wrapped phase (degrees)");
         title(phaseDelays.empty()
                   ? "Phase undefined: no nonzero taps"
-                  : "Impulse response phase (zero taps omitted)");
+                  : "Impulse response phase");
         grid(on);
         if (!save(f, png.generic_string()))
             throw std::runtime_error("Cannot export impulse response plot");
