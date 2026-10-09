@@ -200,6 +200,14 @@ wheel with an automatic editable build. Explicit installation commands manage
 the environment. Changing a simulation script needs no rebuild; changing the
 library sources requires a reinstall.
 
+Keep `python/` unmarked as a **Sources Root** in PyCharm. Adding it to the run
+configuration's `PYTHONPATH` makes the unbuilt source package shadow the installed
+wheel, producing an import error for `_core`. If it is already marked, right-click
+`python/` and choose **Mark Directory as → Unmark as Sources Root**, or disable
+**Add source roots to PYTHONPATH** in the run configuration. Verify that
+`python -c "import raytracing; print(raytracing.__file__)"` points into
+`.venv`'s `site-packages/raytracing` directory.
+
 Desktop viewing requires a graphical session with working OpenGL support. For
 remote/headless simulation, call `rt.solve` and save results without opening a
 viewer. `rt.plot` can use Matplotlib's `Agg` backend. PyVista screenshots still

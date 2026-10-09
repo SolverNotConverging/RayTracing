@@ -13,7 +13,7 @@ import raytracing as rt
 def main():
     config = rt.SolverConfig(
         frequency_hz=77e9,
-        ray_count=20_000,
+        ray_count=200_000,
         max_reflections=8,
         max_distance=20.0,
     )
