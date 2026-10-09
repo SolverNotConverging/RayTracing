@@ -190,6 +190,17 @@ namespace rt {
         return 376.730313668 * std::sqrt(relativePermeability / relativePermittivity);
     }
 
+    Antenna &Antenna::rotate(const Vec3 &worldAxis, double angleDegrees) {
+        if (!worldAxis.allFinite() || !std::isfinite(angleDegrees))
+            throw std::invalid_argument("Antenna rotation requires a finite axis and angle");
+        const double length = worldAxis.stableNorm();
+        if (!positive(length))
+            throw std::invalid_argument("Antenna rotation axis must be nonzero and finite");
+        const double radians = std::remainder(angleDegrees, 360.0) * PI / 180.0;
+        orientation = Eigen::AngleAxisd(radians, worldAxis / length).toRotationMatrix() * orientation;
+        return *this;
+    }
+
     void Antenna::validate(double f, const Medium &m) const {
         if (!positive(f) || !orientation.allFinite() ||
             (orientation.transpose() * orientation - Eigen::Matrix3d::Identity())

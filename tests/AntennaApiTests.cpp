@@ -89,6 +89,27 @@ int main() try {
        "CST Ephi not preserved", 1e-9);
   near(patch.reference_power(77e9), 0.4978351,
        "CST accepted power metadata incorrect", 1e-8);
+  auto rotatedPatch = patch;
+  rotatedPatch.rotate(Vec3(0, 2, 0), -90.0); // Axis need not be normalized.
+  const auto rotation = Eigen::AngleAxisd(-PI / 2, Vec3::UnitY()).toRotationMatrix();
+  check((rotatedPatch.orientation * Vec3::UnitZ() + Vec3::UnitX()).norm() < 1e-12,
+        "Degree rotation did not turn local z horizontal");
+  const Vec3 probe = Vec3(1, 2, 3).normalized();
+  check((rotatedPatch.farfield(rotation * probe, 77e9) -
+         rotation.cast<Complex>() * patch.farfield(probe, 77e9)).norm() < 1e-10,
+        "Rotation did not rotate imported field direction and polarization together");
+  const Vec3C incident = Vec3(2, -1, 0).cast<Complex>();
+  near(rotatedPatch.receive(rotation * probe, rotation.cast<Complex>() * incident, 77e9),
+       patch.receive(probe, incident, 77e9), "Rx rotation changed reciprocal contraction");
+  rotatedPatch.rotate(Vec3::UnitZ(), 30.0);
+  const Eigen::Matrix3d composed = Eigen::AngleAxisd(PI / 6, Vec3::UnitZ()).toRotationMatrix() * rotation;
+  check((rotatedPatch.orientation - composed).norm() < 1e-12,
+        "Rotation did not compose about world axis");
+  rotatedPatch.validate(77e9);
+  rejects([&] { rotatedPatch.rotate(Vec3::Zero(), 90.0); });
+  rejects([&] { rotatedPatch.rotate(Vec3::UnitY(), std::numeric_limits<double>::infinity()); });
+  check((rotatedPatch.orientation - composed).norm() < 1e-12,
+        "Invalid rotation changed antenna orientation");
   const auto mid = patch.farfield(Vec3::UnitX(), 77.25e9);
   const auto high = patch.farfield(Vec3::UnitX(), 77.5e9);
   check((mid - (value + high) / 2).norm() < 1e-10,
@@ -155,7 +176,7 @@ int main() try {
   full.add(Triangle{{14, 0, 0}, {14, 1, 0}, {14, 0, 1}});
   tx.antenna = patch;
   rx.position = Vec3(3, 0, 0);
-  rx.antenna = patch;
+  rx.antenna = rotatedPatch;
   auto patterned = solve(full, tx, rx, cfg);
   save_h5(patterned, folder / "simulation.h5");
   const auto loaded = load_h5(folder / "simulation.h5");
@@ -166,6 +187,8 @@ int main() try {
   check(loaded.settings.rayCount == cfg.rayCount &&
             loaded.launchedRays == patterned.launchedRays,
         "HDF5 settings/diagnostics lost");
+  check((loaded.receiver.antenna.orientation - rotatedPatch.orientation).norm() < 1e-12,
+        "HDF5 rotated antenna orientation lost");
   near(loaded.impulseResponse.taps_[0].coefficient_,
        patterned.impulseResponse.taps_[0].coefficient_,
        "HDF5 response changed");

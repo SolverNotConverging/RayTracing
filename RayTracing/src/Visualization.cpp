@@ -2,12 +2,20 @@
 #include "ResultIO.hpp"
 
 #include <cmath>
+#include <algorithm>
+#include <limits>
+#include <sstream>
 #include <stdexcept>
 #include <vtkActor.h>
 #include <vtkAxesActor.h>
 #include <vtkCamera.h>
 #include <vtkCaptionActor2D.h>
 #include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkColorTransferFunction.h>
+#include <vtkDoubleArray.h>
+#include <vtkLookupTable.h>
+#include <vtkScalarBarActor.h>
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkNew.h>
 #include <vtkPNGWriter.h>
@@ -175,17 +183,39 @@ show_scene(const std::vector<std::vector<Vec3> > &paths,
     vtkNew<vtkCellArray> pathLines;
     vtkNew<vtkPoints> polarizationPoints;
     vtkNew<vtkCellArray> polarizationLines;
+    vtkNew<vtkDoubleArray> pathStrengths;
+    pathStrengths->SetName("Receiver incident field relative to peak (dB)");
+    double peakReceiverField = 0;
+    if (simulation)
+        for (const auto &ray : simulation->rays)
+            if (ray.field)
+                peakReceiverField = std::max(peakReceiverField, ray.field->receiverField_.norm());
+    const bool colorByField = simulation && view.colorRaysByField;
 
     // Display scale only: the stored electric fields are unchanged.
     constexpr double polarizationScale = 0.12;
     constexpr int ellipseSegments = 64;
 
-    for (const auto &path: paths) {
+    for (std::size_t pathIndex = 0; pathIndex < paths.size(); ++pathIndex) {
+        const auto &path = paths[pathIndex];
         if (path.size() < 2)
             continue;
         pathLines->InsertNextCell(static_cast<vtkIdType>(path.size()));
         for (const Vec3 &point: path)
             pathLines->InsertCellPoint(pathPoints->InsertNextPoint(point.data()));
+        if (colorByField) {
+            const auto rayIndex = view.rayIndices.empty() ? pathIndex : view.rayIndices.at(pathIndex);
+            const auto &ray = simulation->rays.at(rayIndex);
+            double strength = std::numeric_limits<double>::quiet_NaN();
+            if (ray.field) {
+                const double amplitude = ray.field->receiverField_.norm();
+                strength = amplitude > 0 && peakReceiverField > 0
+                    ? std::clamp(20.0 * (std::log10(amplitude) - std::log10(peakReceiverField)),
+                                 -view.fieldDynamicRangeDb, 0.0)
+                    : -view.fieldDynamicRangeDb;
+            }
+            pathStrengths->InsertNextValue(strength);
+        }
     }
 
     for (const auto &ray: rays) {
@@ -217,6 +247,30 @@ show_scene(const std::vector<std::vector<Vec3> > &paths,
     pathData->SetLines(pathLines);
     vtkNew<vtkPolyDataMapper> pathMapper;
     pathMapper->SetInputData(pathData);
+    vtkNew<vtkLookupTable> fieldColors;
+    if (colorByField) {
+        // A sequential blue-to-yellow palette keeps weaker paths distinguishable.
+        vtkNew<vtkColorTransferFunction> palette;
+        palette->AddRGBPoint(0.0, 0.267, 0.005, 0.329);
+        palette->AddRGBPoint(0.25, 0.230, 0.322, 0.546);
+        palette->AddRGBPoint(0.5, 0.128, 0.567, 0.551);
+        palette->AddRGBPoint(0.75, 0.369, 0.789, 0.383);
+        palette->AddRGBPoint(1.0, 0.993, 0.906, 0.144);
+        fieldColors->SetNumberOfTableValues(256);
+        fieldColors->SetTableRange(-view.fieldDynamicRangeDb, 0.0);
+        fieldColors->SetNanColor(0.65, 0.65, 0.65, 1.0);
+        fieldColors->Build();
+        for (int i = 0; i < 256; ++i) {
+            double rgb[3];
+            palette->GetColor(i / 255.0, rgb);
+            fieldColors->SetTableValue(i, rgb[0], rgb[1], rgb[2], 1.0);
+        }
+        pathData->GetCellData()->SetScalars(pathStrengths);
+        pathMapper->SetScalarModeToUseCellData();
+        pathMapper->SetLookupTable(fieldColors);
+        pathMapper->UseLookupTableScalarRangeOn();
+        pathMapper->ScalarVisibilityOn();
+    }
     vtkNew<vtkActor> pathActor;
     pathActor->SetMapper(pathMapper);
     pathActor->GetProperty()->SetColor(0.2, 0.8, 1.0);
@@ -342,6 +396,36 @@ show_scene(const std::vector<std::vector<Vec3> > &paths,
             "Red: Tx | Green: Rx (normalized antenna-pattern shape)\n"
             "Orange: unresolved candidates | Grey: PEC geometry\n"
             "Drag: rotate | Scroll: zoom | Middle drag: pan");
+        if (colorByField) {
+            std::ostringstream text;
+            text << "Rays: Rx incident |E| relative to strongest path (dB)\n"
+                 << "Grey rays: field unavailable | Gold: polarization\n"
+                 << "Red: Tx | Green: Rx | Orange: unresolved candidates\n";
+            if (peakReceiverField > 0)
+                text << "Peak Rx |E|: " << peakReceiverField << " V/m\n";
+            else
+                text << "No nonzero Rx fields; valid rays use the scale floor\n";
+            text << "Drag: rotate | Scroll: zoom | Middle drag: pan";
+            legend->SetInput(text.str().c_str());
+            vtkNew<vtkScalarBarActor> bar;
+            bar->SetLookupTable(fieldColors);
+            bar->SetTitle("Rx |E| (dB)\nrelative to peak");
+            bar->SetNumberOfLabels(5);
+            bar->SetLabelFormat("%.0f");
+            bar->SetPosition(0.84, 0.30);
+            bar->SetWidth(0.14);
+            bar->SetHeight(0.50);
+            bar->SetUnconstrainedFontSize(true);
+            bar->GetTitleTextProperty()->SetFontSize(16);
+            bar->GetTitleTextProperty()->SetBold(false);
+            bar->GetTitleTextProperty()->SetItalic(false);
+            bar->GetLabelTextProperty()->SetFontSize(16);
+            bar->GetLabelTextProperty()->SetBold(false);
+            bar->GetLabelTextProperty()->SetItalic(false);
+            bar->GetTitleTextProperty()->SetColor(1, 1, 1);
+            bar->GetLabelTextProperty()->SetColor(1, 1, 1);
+            renderer->AddActor2D(bar);
+        }
     }
     renderer->AddActor(axes);
     renderer->AddViewProp(legend);
@@ -386,6 +470,8 @@ namespace rt {
     void visualize(const SimulationResult &result, const ViewOptions &options) {
         if (!std::isfinite(options.patternScale) || options.patternScale <= 0)
             throw std::invalid_argument("Pattern display scale must be positive");
+        if (!std::isfinite(options.fieldDynamicRangeDb) || options.fieldDynamicRangeDb <= 0)
+            throw std::invalid_argument("Field color dynamic range must be positive");
         std::vector<std::vector<Vec3> > paths, unresolved;
         std::vector<EMRay> fields;
         auto indices = options.rayIndices;

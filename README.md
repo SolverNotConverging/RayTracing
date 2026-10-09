@@ -72,10 +72,10 @@ Rx port amplitude/phase calibration.
 ```cpp
 rt::FarfieldImportOptions options;
 options.inputConvention = rt::PhasorConvention::PositiveTime;
-tx.antenna = rt::load_farfield("simple_patch.ffs", options);
-rx.antenna = rt::load_farfield("simple_patch.ffs", options);
-rx.antenna.orientation =
-    Eigen::AngleAxisd(0.5, rt::Vec3::UnitZ()).toRotationMatrix();
+tx.antenna = rt::load_farfield("antenna_patterns/simple_patch.ffs", options);
+tx.antenna.rotate(rt::Vec3::UnitY(), -90.0); // Supplied pattern's -z lobe toward +x.
+rx.antenna = rt::load_farfield("antenna_patterns/simple_patch.ffs", options);
+rx.antenna.rotate(rt::Vec3::UnitZ(), 30.0);
 ```
 
 The supplied CST version 3.0 file has five frequencies from 76 to 78 GHz, with
@@ -84,6 +84,15 @@ radiated, 0.4978351 W accepted and 0.5 W stimulated power. Both complex spherica
 field components, powers and exported coordinate metadata are preserved. Exported
 axes initialize antenna orientation; exported position is metadata, while the
 endpoint position controls placement.
+
+`rotate(axis, degrees)` composes a right-hand rotation about a world-space axis
+with the existing orientation, including exported CST axes. The axis is normalized
+automatically and must be nonzero; angles are in degrees. Repeated calls compose
+in call order. Both field directions and complex polarization rotate, and the
+same orientation drives VTK and is saved in HDF5. For a +z-facing pattern, +90
+degrees about y points it toward +x, while -90 degrees points it toward -x.
+The supplied patch has its strongest lobe near -z, so the demo uses -90 degrees
+about y to aim it roughly toward horizontal +x.
 
 CST version 3.0 Farfield Source and rectangular theta/phi HFSS exports are
 supported. HFSS accepts frequency-independent data or `Frequencies`/`Frequency`
@@ -106,6 +115,15 @@ coefficients and powers.
 VTK replaces each non-isotropic endpoint sphere with its oriented pattern.
 Its radial display uses `|rE| / max |rE|`; `ViewOptions::patternScale` sets the peak
 display radius in metres and leaves the physical fields unchanged.
+
+Refined rays are colored by their individual incident field magnitude at Rx:
+`20 log10(|E_p| / max |E|)`, using the strongest solved ray as the reference even
+when selecting a subset. The VTK color bar spans -60 to 0 dB by default; purple
+is weak and yellow is strong. Each complete ray has one color representing its
+Rx field, before Rx antenna weighting or coherent tap addition. Zero fields and
+values below the display range use its floor; unavailable fields appear grey.
+Set `ViewOptions::fieldDynamicRangeDb` to change the range or
+`colorRaysByField=false` to restore cyan paths. Antenna colors stay red/green.
 
 ## Fields and receive response
 
@@ -190,7 +208,7 @@ cmake --build cmake-build-debug --target RayTracingApp
 ./cmake-build-debug/RayTracing.exe --plot-csv results/impulse_response.csv --no-gui --output results/replotted
 ```
 
-The demo uses the supplied CST Tx and an isotropic Rx. It exports `simulation.h5`,
+The demo uses the supplied CST Tx rotated toward horizontal +x and an isotropic Rx. It exports `simulation.h5`,
 `impulse_response.csv` and a magnitude/phase PNG after tracing. Interactive mode
 opens Matplot++ first; close it to proceed to VTK. `--no-gui` still exports the
 plot, and `--screenshot` exports VTK without an interactive window in that mode.

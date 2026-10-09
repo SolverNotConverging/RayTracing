@@ -38,7 +38,7 @@ int main(int argc, char **argv) try {
 
     rt::SolverConfig config;
     config.frequencyHz = 77e9;
-    config.rayCount = 2000;
+    config.rayCount = 20000;
     config.maxReflections = 8;
     config.maxDistance = 20;
     rt::Scene scene;
@@ -62,6 +62,8 @@ int main(int argc, char **argv) try {
         rt::FarfieldImportOptions import;
         import.inputConvention = rt::PhasorConvention::PositiveTime;
         tx.antenna = rt::load_farfield(RAYTRACING_EXAMPLE_PATTERN, import);
+        // This CST pattern radiates mainly along -z; turn it toward horizontal +x.
+        tx.antenna.rotate(rt::Vec3::UnitY(), -90.0);
         std::cout << "CST source: " << tx.antenna.pattern->frequenciesHz.size()
                 << " frequencies; " << tx.antenna.pattern->phiDegrees.size()
                 << " x " << tx.antenna.pattern->thetaDegrees.size()

@@ -110,6 +110,10 @@ namespace rt {
             : kind(AntennaKind::RectangularAperture), aperture(model) {
         }
 
+        // Compose a right-hand rotation about a world-space axis (degrees).
+        // Rotates both pattern directions and polarization; preserves export axes.
+        Antenna &rotate(const Vec3 &worldAxis, double angleDegrees);
+
         void validate(double frequencyHz, const Medium &medium = {}) const;
 
         Vec3C farfield(const Vec3 &outwardDirection, double frequencyHz,

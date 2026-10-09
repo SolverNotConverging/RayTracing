@@ -23,6 +23,8 @@ namespace rt {
         double patternScale =
                 0.45; // Peak display radius (m), independent of physical fields.
         std::vector<std::size_t> rayIndices; // Empty selects every solved ray.
+        bool colorRaysByField = true;
+        double fieldDynamicRangeDb = 60.0; // Rx incident |E| relative to strongest solved ray.
     };
 
     void visualize(const SimulationResult &result, const ViewOptions &options = {});
