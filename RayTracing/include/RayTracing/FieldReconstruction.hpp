@@ -22,6 +22,7 @@ struct ReconstructedField {
     double delaySeconds_ = 0.0;
     double frequencyHz_ = 0.0;
     double fieldFactor_ = 0.0;
+    unsigned int causticCount_ = 0;
 };
 
 // Rebuild the receiver field from the refined geometry, never from the coarse
@@ -34,7 +35,7 @@ struct ReconstructedField {
 // by surface index, like the surfaces used to refine the path.
 //
 // Requires Converged geometry and Valid spreading for that same path. Throws on
-// invalid inputs. Caustic-crossing phase is not included.
+// invalid inputs. Internal caustics contribute exp(-i*pi*causticCount/2).
 ReconstructedField reconstruct_field(const RefinementResult &path, const SpreadingResult &spreading,
                                      const Vec3C &sourceReferenceField,
                                      const std::vector<rt::Material> &surfaceMaterials,

@@ -94,7 +94,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SpreadingOptions, angularStep_,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SpreadingResult, status_, jacobian_,
                                    singularValues_, areaPerSolidAngle_,
                                    angularStep_, derivativeDifference_,
-                                   fieldFactor_, launchU_, launchV_, receiverU_,
+                                   fieldFactor_, causticCount_, launchU_, launchV_, receiverU_,
                                    receiverV_)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DeduplicationOptions, positionTolerance_,
                                    angleTolerance_, lengthTolerance_)
@@ -103,7 +103,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ReconstructedField, receiverField_,
                                    transportedReferenceField_,
                                    arrivalDirection_, reflections_, pathDistance_,
                                    opticalPath_, delaySeconds_, frequencyHz_,
-                                   fieldFactor_)
+                                   fieldFactor_, causticCount_)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ImpulseTap, delaySeconds_, coefficient_,
                                    normalizedField_, pathIndices_)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ImpulseResponse, frequencyHz_,
@@ -160,8 +160,8 @@ namespace rt {
                                        receivedCoefficient)
 
     namespace {
-        // Version 2: per-surface materials, reflection coefficients, exact c0.
-        constexpr int schemaVersion = 2;
+        // Version 3: internal conjugate-point count and Maslov-corrected fields.
+        constexpr int schemaVersion = 3;
 
         struct H5 {
             hid_t id = -1;

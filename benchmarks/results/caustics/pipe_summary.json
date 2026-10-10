@@ -1,0 +1,13 @@
+{
+  "tested_rays": 634,
+  "families": [
+    "direct water",
+    "non-periodic",
+    "polygon",
+    "radial line",
+    "star"
+  ],
+  "caustic_mismatches": 0,
+  "max_relative_area_error": 1.0754607426832763e-08,
+  "max_length_error_m": 1.7763568394002505e-15
+}

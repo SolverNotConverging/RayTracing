@@ -3,6 +3,71 @@
 #include <Eigen/SVD>
 #include <cmath>
 #include <stdexcept>
+#include <algorithm>
+#include <type_traits>
+
+namespace {
+using Bundle = Eigen::Matrix<double, 3, 2>;
+
+// On each straight segment det(X+s V) is quadratic. Count its real zeros
+// with multiplicity; exclude the source/segment start and final receiver.
+unsigned int segment_foci(const Bundle &x, const Bundle &v, const Vec3 &k,
+                          double length, bool includeEnd) {
+    const Vec3 u = k.unitOrthogonal(), w = k.cross(u);
+    Eigen::Matrix2d a, b;
+    a.row(0) = u.transpose() * x; a.row(1) = w.transpose() * x;
+    b.row(0) = length * u.transpose() * v; b.row(1) = length * w.transpose() * v;
+    const long double c0 = a.determinant(), c2 = b.determinant();
+    const long double c1 = a(0,0)*b(1,1)+b(0,0)*a(1,1)-a(0,1)*b(1,0)-b(0,1)*a(1,0);
+    const long double scale = std::max({std::abs(c0),std::abs(c1),std::abs(c2)});
+    const long double eps = 64 * std::numeric_limits<double>::epsilon();
+    const auto inside = [&](long double t) {
+        return t > eps && (includeEnd ? t <= 1+eps : t < 1-eps);
+    };
+    if (scale == 0) throw std::runtime_error("Degenerate ray bundle along a segment");
+    if (std::abs(c2) <= eps*scale)
+        return std::abs(c1) > eps*scale && inside(-c0/c1) ? 1u : 0u;
+    const long double discriminant = c1*c1-4*c2*c0;
+    const long double tolerance = eps*(c1*c1+std::abs(4*c2*c0));
+    if (discriminant < -tolerance) return 0;
+    if (std::abs(discriminant) <= tolerance) return inside(-c1/(2*c2)) ? 2u : 0u;
+    const long double q = -0.5L*(c1+std::copysign(std::sqrt(discriminant),c1));
+    return static_cast<unsigned int>(inside(q/c2)) + static_cast<unsigned int>(inside(c0/q));
+}
+
+unsigned int count_caustics(const SequenceEvaluation &path, const Vec3 &launch,
+                           const Vec3 &u, const Vec3 &v, const std::vector<Surface> &surfaces) {
+    Bundle x = Bundle::Zero(), d;
+    d.col(0)=u; d.col(1)=v;
+    Vec3 k=launch;
+    unsigned int count=0;
+    for (const auto &hit : path.reflections_) {
+        count += segment_foci(x,d,k,hit.segmentDistance_,true);
+        x += hit.segmentDistance_*d;
+        const Vec3 n=hit.normal_;
+        const double cosine=n.dot(k);
+        if (std::abs(cosine)<1e-12) throw std::runtime_error("Grazing variational reflection");
+        const Eigen::RowVector2d dt=-(n.transpose()*x)/cosine;
+        const Bundle q=x+k*dt;
+        Eigen::Matrix3d curvature=Eigen::Matrix3d::Zero();
+        std::visit([&](const auto &shape) {
+            using T=std::decay_t<decltype(shape)>;
+            if constexpr (std::is_same_v<T,Sphere>)
+                curvature=(Eigen::Matrix3d::Identity()-n*n.transpose())/shape.radius_;
+            else if constexpr (std::is_same_v<T,Cylinder>) {
+                if (std::abs(n.dot(shape.axis_))<0.5)
+                    curvature=(Eigen::Matrix3d::Identity()-shape.axis_*shape.axis_.transpose()-n*n.transpose())/shape.radius_;
+            }
+        },surfaces[hit.surfaceIndex_]);
+        const Bundle dn=curvature*q;
+        d=(d-2*(n*(n.transpose()*d+k.transpose()*dn)+cosine*dn)).eval();
+        k=(k-2*cosine*n).eval();
+        x=q-k*dt;
+        if (!x.allFinite() || !d.allFinite()) throw std::runtime_error("Variational transport overflow");
+    }
+    return count+segment_foci(x,d,k,path.receiver_->finalSegmentDistance_,false);
+}
+}
 
 SpreadingResult calculate_spreading(
     const Vec3 &transmitterPosition, const Vec3 &launchDirection,
@@ -93,6 +158,7 @@ SpreadingResult calculate_spreading(
         const double factor = options.referenceDistance_ / std::sqrt(result.areaPerSolidAngle_);
         if (!std::isfinite(result.areaPerSolidAngle_) || !positive(factor)) return result;
         result.fieldFactor_ = factor;
+        result.causticCount_ = count_caustics(central, launchDirection, result.launchU_, result.launchV_, surfaces);
         result.status_ = SpreadingStatus::Valid;
         return result;
     }

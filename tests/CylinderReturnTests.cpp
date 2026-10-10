@@ -1,4 +1,6 @@
 #include <RayTracing/Solver.hpp>
+#include <RayTracing/ResultIO.hpp>
+#include <filesystem>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -90,6 +92,20 @@ int main() try {
         peak = std::max(peak, solved.field->receiverField_.norm());
     }
     check(peak > 0 && peak < 300, "Shifted tube has a divergent field");
+    const auto saved=std::filesystem::temp_directory_path()/"raytracing-caustic-roundtrip.h5";
+    rt::save_h5(offAxis,saved);
+    const auto restored=rt::load_h5(saved);
+    bool internalFocus=false;
+    for (std::size_t i=0;i<offAxis.rays.size();++i) {
+        const auto &before=offAxis.rays[i]; const auto &after=restored.rays[i];
+        internalFocus=internalFocus || before.spreading.causticCount_>0;
+        check(after.spreading.causticCount_==before.spreading.causticCount_ &&
+              after.field->causticCount_==before.field->causticCount_,"HDF5 lost caustic count");
+        check((after.field->receiverField_-before.field->receiverField_).norm()<1e-12,
+              "HDF5 changed Maslov-corrected field");
+    }
+    check(internalFocus,"Persistence test did not exercise an internal focus");
+    std::filesystem::remove(saved);
 
     // Doubling launches must discover the same discrete roots, not add copies to h(t).
     config.rayCount *= 2;

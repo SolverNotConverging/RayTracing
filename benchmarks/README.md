@@ -1,5 +1,8 @@
 # Analytical spreading benchmarks
 
+For internal conjugate-point counting, Maslov phase, repeated-focus checks and
+committed analytical validation figures, see [CAUSTICS.md](CAUSTICS.md).
+
 For the **0.5 public beam/volume solver**, see [BEAMS.md](BEAMS.md) and run
 `python benchmarks/beam_transport.py`. Its checked-in results are under
 `results/beams`. The remainder of this document describes the internal native

@@ -31,6 +31,7 @@ struct SpreadingResult {
     double angularStep_ = 0.0; // Step used for the returned derivative.
     double derivativeDifference_ = 0.0; // ||J(h) - J(h/2)||_F
     std::optional<double> fieldFactor_; // referenceDistance / sqrt(|det J|)
+    unsigned int causticCount_ = 0; // Internal conjugate points, counted with multiplicity.
     Vec3 launchU_ = Vec3::Zero(), launchV_ = Vec3::Zero();
     Vec3 receiverU_ = Vec3::Zero(), receiverV_ = Vec3::Zero();
 };
@@ -38,8 +39,8 @@ struct SpreadingResult {
 // Point-source geometrical spreading in a homogeneous medium, for a fixed
 // specular reflection sequence. Validate surfaces first. Invalid arguments throw.
 // Uses central differences on one fixed receiver plane and checks h against h/2.
-// Only Valid supplies a field factor. No field transport or caustic phase is
-// computed; a Valid endpoint does not exclude caustics earlier along the path.
+// Only Valid supplies a field factor. Variational transport counts internal
+// conjugate points; field reconstruction applies their Maslov phase.
 SpreadingResult calculate_spreading(
     const Vec3 &transmitterPosition, const Vec3 &launchDirection,
     const Vec3 &receiverPosition, const std::vector<Surface> &surfaces,

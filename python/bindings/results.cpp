@@ -62,6 +62,7 @@ void bind_results(py::module_ &m) {
             .def_readonly("area_per_solid_angle", &SpreadingResult::areaPerSolidAngle_)
             .def_readonly("angular_step", &SpreadingResult::angularStep_)
             .def_readonly("derivative_difference", &SpreadingResult::derivativeDifference_)
+            .def_readonly("caustic_count", &SpreadingResult::causticCount_)
             .def_readonly("field_factor", &SpreadingResult::fieldFactor_)
             .def_readonly("launch_u", &SpreadingResult::launchU_)
             .def_readonly("launch_v", &SpreadingResult::launchV_)
@@ -78,6 +79,7 @@ void bind_results(py::module_ &m) {
             .def_readonly("optical_path", &ReconstructedField::opticalPath_)
             .def_readonly("delay_seconds", &ReconstructedField::delaySeconds_)
             .def_readonly("frequency_hz", &ReconstructedField::frequencyHz_)
+            .def_readonly("caustic_count", &ReconstructedField::causticCount_)
             .def_readonly("field_factor", &ReconstructedField::fieldFactor_);
     py::class_<ImpulseTap>(m, "ImpulseTap")
             .def_readonly("delay_seconds", &ImpulseTap::delaySeconds_)

@@ -61,13 +61,15 @@ ReconstructedField reconstruct_field(const RefinementResult &path, const Spreadi
     result.delaySeconds_ = result.opticalPath_ / rt::constants::speedOfLight;
     result.frequencyHz_ = options.frequencyHz_;
     result.fieldFactor_ = *spreading.fieldFactor_;
+    result.causticCount_ = spreading.causticCount_;
     result.arrivalDirection_ = direction;
     result.transportedReferenceField_ = field;
     const double cycles = options.frequencyHz_ * result.delaySeconds_;
     if (!std::isfinite(result.opticalPath_) || !std::isfinite(cycles))
         throw std::invalid_argument("Optical path or propagation phase overflow");
     const Complex phase = std::polar(1.0, 2.0 * rt::constants::pi * std::remainder(cycles, 1.0));
-    result.receiverField_ = result.fieldFactor_ * phase * field;
+    const Complex maslov[] = {Complex(1, 0), Complex(0, -1), Complex(-1, 0), Complex(0, 1)};
+    result.receiverField_ = result.fieldFactor_ * phase * maslov[result.causticCount_ % 4] * field;
     result.normalizedReceiverField_ = result.receiverField_ / options.sourceReferenceAmplitude_;
     if (!result.receiverField_.allFinite() || !result.normalizedReceiverField_.allFinite())
         throw std::invalid_argument("Reconstructed field overflow");

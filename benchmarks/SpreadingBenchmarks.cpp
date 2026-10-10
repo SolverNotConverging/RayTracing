@@ -1,4 +1,6 @@
 #include "Spreading.hpp"
+#include "FieldReconstruction.hpp"
+#include "Constants.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -138,7 +140,57 @@ int main(int argc, char **argv) try {
     csv << std::setprecision(17)
             <<
             "case,distance_m,analytical_sigma_max_m,analytical_sigma_min_m,numerical_sigma_max_m,numerical_sigma_min_m,analytical_area_m2,numerical_area_m2,analytical_field_factor,numerical_field_factor,max_relative_error\n";
-    int checks = 0;
+    // Independent mirror equations: B_t=a+b-2ab/(R cos(theta)),
+    // B_s=a+b-2ab cos(theta)/R (sphere), B_s=a+b (cylinder).
+    // Each negative B has crossed exactly one focus for a single reflection.
+    std::ofstream phases(output / "caustics.csv");
+    phases << std::setprecision(17)
+           << "shape,angle_deg,distance_m,analytical_mu,numerical_mu,analytical_factor,numerical_factor,relative_complex_error\n";
+    int phaseChecks=0;
+    double maxPhaseError=0;
+    for (bool cylinder : {false,true}) for (double angle : {0.,15.,30.}) {
+        for (int i=0;i<120;++i) {
+            const double b=0.05+0.018*i;
+            const auto sample=curved(2,b,2,angle*std::numbers::pi/180,cylinder,true);
+            if (sample.expectedLengths.cwiseAbs().minCoeff()<1e-5) continue;
+            const auto spread=evaluate(sample);
+            validate(sample,spread,1e-5);
+            const unsigned int mu=static_cast<unsigned int>(sample.expectedLengths[0]<0)
+                                 +static_cast<unsigned int>(sample.expectedLengths[1]<0);
+            check(spread.causticCount_==mu,"Analytical caustic multiplicity mismatch");
+            const auto moved=evaluate(transformed(sample));
+            check(moved.causticCount_==mu,"Rigid transformation changed caustic count");
+            const auto path=refine_path(sample.tx,sample.direction,sample.rx,sample.surfaces,sample.sequence);
+            FieldReconstructionOptions fieldOptions;
+            fieldOptions.frequencyHz_=rt::constants::speedOfLight/0.7;
+            const auto field=reconstruct_field(path,spread,Vec3::UnitZ().cast<Complex>(),{rt::Material::pec()},fieldOptions);
+            const double factor=1/std::sqrt(std::abs(sample.expectedLengths.prod()));
+            const Complex expected=-factor*std::polar(1.,2*std::numbers::pi*(2+b)/0.7-std::numbers::pi*mu/2);
+            const double error=std::abs(field.receiverField_[2]-expected)/std::abs(expected);
+            check(error<1e-5,"Analytical complex field mismatch");
+            maxPhaseError=std::max(maxPhaseError,error);
+            phases << (cylinder ? "cylinder" : "sphere") << ',' << angle << ',' << b << ',' << mu << ','
+                   << spread.causticCount_ << ',' << factor << ',' << *spread.fieldFactor_ << ',' << error << '\n';
+            phaseChecks+=2;
+        }
+    }
+    std::cout << "Caustic mirror checks: " << phaseChecks << "; maximum complex error " << maxPhaseError << '\n';
+    int checks = phaseChecks;
+    // Diameter returns cross one cylindrical or two spherical focal directions
+    // per reflection. Endpoint determinant sign alone loses every second focus.
+    for (bool cylinder : {false,true}) for (unsigned int n=1;n<=12;++n) {
+        const double sign=n%2 ? 1. : -1.;
+        Case repeated{Vec3::Zero(),Vec3::UnitX(),Vec3(-0.5*sign,0,0),{},
+                      std::vector<std::size_t>(n,0),{0.5,cylinder ? 4*n+0.5 : 0.5}};
+        if (cylinder) repeated.surfaces.push_back(Cylinder{Vec3::Zero(),Vec3::UnitZ(),2,20,false});
+        else repeated.surfaces.push_back(Sphere{Vec3::Zero(),2});
+        for (const auto &scene : {repeated,transformed(repeated)}) {
+            const auto spread=evaluate(scene);
+            validate(scene,spread,1e-5);
+            check(spread.causticCount_==n*(cylinder ? 1u : 2u),"Repeated focus count incorrect");
+            ++checks;
+        }
+    }
     double maximumError = 0;
     const std::vector<std::string> names{
         "direct", "plane", "sphere_normal", "cylinder_normal",
