@@ -1,15 +1,18 @@
 #include "FieldReconstruction.hpp"
-#include "EMRay.hpp"
+#include "Constants.hpp"
+#include "Tracing.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
-ReconstructedField reconstruct_field(const RefinementResult &path,
-                                     const SpreadingResult &spreading, const Vec3C &sourceReferenceField,
+ReconstructedField reconstruct_field(const RefinementResult &path, const SpreadingResult &spreading,
+                                     const Vec3C &sourceReferenceField,
+                                     const std::vector<rt::Material> &surfaceMaterials,
                                      const FieldReconstructionOptions &options) {
     const auto positive = [](double x) { return std::isfinite(x) && x > 0.0; };
-    if (!positive(options.frequencyHz_) || !positive(options.refractiveIndex_) ||
+    options.medium_.validate();
+    if (!positive(options.frequencyHz_) ||
         !positive(options.receiverTolerance_) || !positive(options.sourceReferenceAmplitude_) || !sourceReferenceField.
         allFinite() ||
         !path.launchDirection_.allFinite() ||
@@ -30,6 +33,7 @@ ReconstructedField reconstruct_field(const RefinementResult &path,
         !positive(*spreading.fieldFactor_))
         throw std::invalid_argument("Field reconstruction requires a converged receiver path and valid spreading");
 
+    ReconstructedField result;
     Vec3C field = sourceReferenceField;
     Vec3 direction = path.launchDirection_;
     double length = geometry.receiver_->finalSegmentDistance_;
@@ -37,8 +41,13 @@ ReconstructedField reconstruct_field(const RefinementResult &path,
         if (!hit.normal_.allFinite() || std::abs(hit.normal_.norm() - 1.0) > 1e-10 ||
             !std::isfinite(hit.segmentDistance_) || hit.segmentDistance_ <= 0)
             throw std::invalid_argument("Invalid reflection in refined geometry");
-        const Vec3C normal = hit.normal_.cast<Complex>();
-        field = (-field + 2.0 * normal.dot(field) * normal).eval();
+        if (hit.surfaceIndex_ >= surfaceMaterials.size())
+            throw std::invalid_argument("Reflection surface has no assigned material");
+        const auto coefficients = rt::fresnel_reflection(
+            surfaceMaterials[hit.surfaceIndex_], options.medium_,
+            std::min(1.0, std::abs(direction.dot(hit.normal_))), options.frequencyHz_);
+        field = (rt::reflection_matrix(direction, hit.normal_, coefficients) * field).eval();
+        result.reflections_.push_back(coefficients);
         direction = reflected_direction(direction, hit.normal_).normalized();
         length += hit.segmentDistance_;
     }
@@ -47,10 +56,9 @@ ReconstructedField reconstruct_field(const RefinementResult &path,
         1e-10 * std::max(1.0, length))
         throw std::invalid_argument("Inconsistent refined path length or arrival direction");
 
-    ReconstructedField result;
     result.pathDistance_ = length;
-    result.opticalPath_ = options.refractiveIndex_ * length;
-    result.delaySeconds_ = result.opticalPath_ / C;
+    result.opticalPath_ = options.medium_.refractive_index() * length;
+    result.delaySeconds_ = result.opticalPath_ / rt::constants::speedOfLight;
     result.frequencyHz_ = options.frequencyHz_;
     result.fieldFactor_ = *spreading.fieldFactor_;
     result.arrivalDirection_ = direction;
@@ -58,7 +66,7 @@ ReconstructedField reconstruct_field(const RefinementResult &path,
     const double cycles = options.frequencyHz_ * result.delaySeconds_;
     if (!std::isfinite(result.opticalPath_) || !std::isfinite(cycles))
         throw std::invalid_argument("Optical path or propagation phase overflow");
-    const Complex phase = std::polar(1.0, 2.0 * PI * std::remainder(cycles, 1.0));
+    const Complex phase = std::polar(1.0, 2.0 * rt::constants::pi * std::remainder(cycles, 1.0));
     result.receiverField_ = result.fieldFactor_ * phase * field;
     result.normalizedReceiverField_ = result.receiverField_ / options.sourceReferenceAmplitude_;
     if (!result.receiverField_.allFinite() || !result.normalizedReceiverField_.allFinite())

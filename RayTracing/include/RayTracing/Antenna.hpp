@@ -1,5 +1,5 @@
 #pragma once
-#include "Surface.hpp"
+#include "Material.hpp"
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -14,14 +14,6 @@ namespace rt {
     using ::Triangle;
     using ::Vec3;
     using ::Vec3C;
-
-    struct Medium {
-        double relativePermittivity = 1.0, relativePermeability = 1.0;
-
-        double refractive_index() const;
-
-        double impedance() const;
-    };
 
     enum class Polarization { Vertical, Horizontal, RightCircular, LeftCircular };
 

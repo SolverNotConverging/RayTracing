@@ -1,6 +1,6 @@
 #pragma once
 #include "Antenna.hpp"
-#include "EMRay.hpp"
+#include "Tracing.hpp"
 #include "ImpulseResponse.hpp"
 
 namespace rt {
@@ -8,17 +8,28 @@ namespace rt {
     using ::ImpulseResponse;
     using ::ImpulseTap;
 
+    // Surfaces and the material assigned to each. Shapes and materials are
+    // validated and copied when added; later edits to the caller's objects do
+    // not affect the scene.
     class Scene {
     public:
-        void add(Surface surface) {
+        // Returns the surface index used by paths and reflection records.
+        std::size_t add(Surface surface, Material material) {
             validate_surface(surface);
+            material.validate();
             surfaces_.push_back(std::move(surface));
+            materials_.push_back(std::move(material));
+            return surfaces_.size() - 1;
         }
 
         const std::vector<Surface> &surfaces() const { return surfaces_; }
 
+        // Material of each surface, indexed like surfaces().
+        const std::vector<Material> &materials() const { return materials_; }
+
     private:
         std::vector<Surface> surfaces_;
+        std::vector<Material> materials_;
     };
 
     struct Transmitter {
@@ -67,9 +78,8 @@ namespace rt {
         std::vector<Candidate> candidates;
         ImpulseResponse impulseResponse;
         std::size_t launchedRays = 0;
-        std::vector<std::size_t> traceStatusCounts = std::vector<std::size_t>(6, 0);
-        std::vector<std::size_t>
-        responseRayIndices; // Maps impulse pathIndices to rays.
+        std::vector<std::size_t> traceStatusCounts = std::vector<std::size_t>(traceStatusCount, 0); // Indexed by TraceStatus
+        std::vector<std::size_t> responseRayIndices; // Maps impulse pathIndices to rays.
     };
 
     SimulationResult solve(const Scene &scene, const Transmitter &tx,

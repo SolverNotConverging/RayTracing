@@ -1,4 +1,5 @@
 #include "ResultIO.hpp"
+#include "Constants.hpp"
 #include <algorithm>
 #include <fstream>
 #include <hdf5.h>
@@ -58,6 +59,13 @@ namespace nlohmann {
     };
 } // namespace nlohmann
 using nlohmann::json;
+
+namespace rt {
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Material, name, perfectConductor, relativePermittivity,
+                                       lossTangent, conductivity, relativePermeability)
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ReflectionCoefficients, incidenceAngle, s, p)
+} // namespace rt
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Rectangle, center_, u_, v_, halfWidth_,
                                    halfHeight_)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Sphere, center_, radius_)
@@ -93,7 +101,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DeduplicationOptions, positionTolerance_,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ReconstructedField, receiverField_,
                                    normalizedReceiverField_,
                                    transportedReferenceField_,
-                                   arrivalDirection_, pathDistance_,
+                                   arrivalDirection_, reflections_, pathDistance_,
                                    opticalPath_, delaySeconds_, frequencyHz_,
                                    fieldFactor_)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ImpulseTap, delaySeconds_, coefficient_,
@@ -152,6 +160,9 @@ namespace rt {
                                        receivedCoefficient)
 
     namespace {
+        // Version 2: per-surface materials, reflection coefficients, exact c0.
+        constexpr int schemaVersion = 2;
+
         struct H5 {
             hid_t id = -1;
 
@@ -356,12 +367,17 @@ namespace rt {
 
         json scene_json(const Scene &scene) {
             json j = json::array();
-            for (const auto &surface: scene.surfaces())
+            for (std::size_t i = 0; i < scene.surfaces().size(); ++i) {
+                const auto &surface = scene.surfaces()[i];
                 std::visit(
                     [&](const auto &shape) {
-                        j.push_back({{"type", surface.index()}, {"parameters", shape}});
+                        j.push_back({
+                            {"type", surface.index()}, {"parameters", shape},
+                            {"material", scene.materials()[i]}
+                        });
                     },
                     surface);
+            }
             return j;
         }
 
@@ -369,21 +385,22 @@ namespace rt {
             Scene s;
             for (const auto &entry: j) {
                 const auto &p = entry.at("parameters");
+                const auto material = entry.at("material").get<Material>();
                 switch (entry.at("type").get<int>()) {
                     case 0:
-                        s.add(p.get<Rectangle>());
+                        s.add(p.get<Rectangle>(), material);
                         break;
                     case 1:
-                        s.add(p.get<Disk>());
+                        s.add(p.get<Disk>(), material);
                         break;
                     case 2:
-                        s.add(p.get<Sphere>());
+                        s.add(p.get<Sphere>(), material);
                         break;
                     case 3:
-                        s.add(p.get<Cylinder>());
+                        s.add(p.get<Cylinder>(), material);
                         break;
                     case 4:
-                        s.add(p.get<Triangle>());
+                        s.add(p.get<Triangle>(), material);
                         break;
                     default:
                         throw std::runtime_error("Unknown geometry type");
@@ -430,13 +447,13 @@ namespace rt {
         write_text(file.id, "/meta/schema",
                    {
                        {"name", "RayTracing"},
-                       {"version", 1},
+                       {"version", schemaVersion},
                        {"solverVersion", RAYTRACING_VERSION},
                        {"lengthUnit", "m"},
                        {"delayUnit", "s"},
                        {"fieldUnit", "V/m"},
                        {"phaseConvention", "exp(-i omega t)"},
-                       {"speedOfLight", C}
+                       {"speedOfLight", constants::speedOfLight}
                    });
         write_text(file.id, "/settings/definition", result.settings);
         write_text(file.id, "/scene/geometry", scene_json(result.scene));
@@ -500,7 +517,7 @@ namespace rt {
         H5 file(H5Fopen(path.string().c_str(), H5F_ACC_RDONLY, H5P_DEFAULT),
                 H5Fclose);
         const auto meta = read_text(file.id, "/meta/schema");
-        if (meta.at("name") != "RayTracing" || meta.at("version") != 1 ||
+        if (meta.at("name") != "RayTracing" || meta.at("version") != schemaVersion ||
             meta.at("phaseConvention") != "exp(-i omega t)")
             throw std::runtime_error(
                 "Unsupported simulation HDF5 schema or phase convention");
@@ -526,6 +543,8 @@ namespace rt {
         diag.at("launchedRays").get_to(result.launchedRays);
         diag.at("traceStatusCounts").get_to(result.traceStatusCounts);
         diag.at("responseRayIndices").get_to(result.responseRayIndices);
+        if (result.traceStatusCounts.size() != traceStatusCount)
+            throw std::runtime_error("Invalid saved trace status counts");
         for (auto index: result.responseRayIndices)
             if (index >= result.rays.size() || !result.rays[index].field)
                 throw std::runtime_error("Invalid saved response path index");
@@ -574,7 +593,7 @@ namespace rt {
             out << t.delaySeconds_ << ',' << t.coefficient_.real() << ','
                     << t.coefficient_.imag() << ',' << magnitude << ',';
             if (magnitude > peak * 1e-12)
-                out << std::arg(t.coefficient_) * 180 / PI;
+                out << std::arg(t.coefficient_) * 180 / constants::pi;
             out << ',' << t.pathIndices_.size() << ',';
             for (std::size_t i = 0; i < t.pathIndices_.size(); ++i) {
                 if (i)

@@ -1,61 +1,38 @@
-"""Open cylinder and bottom disk with colocated downward CST antennas.
-
-Run with .venv/Scripts/python.exe example2.py to open the desktop viewer.
-"""
+"""Concave opaque PEC mirror: finite focal field and astigmatic beam transport."""
 from pathlib import Path
-
-import matplotlib.pyplot as plt
+import argparse
 import numpy as np
-
 import raytracing as rt
 
 
-def main():
-    config = rt.SolverConfig(
-        frequency_hz=77e9,
-        ray_count=200_000,
-        max_reflections=8,
-        max_distance=20.0,
-    )
-
-    radius = 0.127
-    depth = 0.5
-    source_shift = 0.006  # Common lateral shift avoids the exact on-axis caustic.
-    antenna_position = np.array([source_shift, 0, 0])
-
-    scene = rt.Scene()
-    scene.add(rt.Cylinder([0, 0, -depth / 2], [0, 0, 1], radius,
-                          half_length=depth / 2, capped=False))
-    scene.add(rt.Disk([0, 0, -depth], [0, 0, -1], radius))
-
-    patch = rt.load_farfield(rt.example_pattern())
-    # The supplied CST patch already points downward (-z). Both endpoints copy it.
-    tx = rt.Transmitter(antenna_position, patch)
-    rx = rt.Receiver(antenna_position, patch)
-
-    print("Running example 2...", flush=True)
-    result = rt.solve(scene, tx, rx, config)
-    print(
-        f"{len(result.rays)} paths, {len(result.response_ray_indices)} paths with fields, "
-        f"{len(result.impulse_response.taps)} impulse taps",
-        flush=True,
-    )
-
-    output = Path(__file__).resolve().parent / "results" / "example2"
-    output.mkdir(parents=True, exist_ok=True)
-    rt.save_h5(result, output / "simulation.h5")
-    rt.save_impulse_csv(result.impulse_response, output / "impulse_response.csv")
-    figure = rt.plot(result.impulse_response, output / "impulse_response.png")
-    plt.close(figure)
-    viewer = rt.visualize(result)
-    try:
-        viewer.screenshot(str(output / "scene.png"))
-    finally:
-        viewer.close()
-    print(f"Results saved to {output}", flush=True)
-    print("Drag to rotate; Shift+drag to pan; scroll to zoom. Close the viewer to exit.", flush=True)
-    rt.show(result)
+def make_scene():
+    scene=rt.Scene()
+    # A spherical surface is an opaque shell. Launching inside the shell exposes
+    # its concave side without placing the source inside an opaque volume.
+    scene.add_surface(rt.Sphere([0,0,0],2),rt.Material.pec())
+    beam=rt.GaussianBeam([0,0,0],[0,0,1],.1)
+    receiver=rt.GaussianBeam([0,0,1],[0,0,1],.03)
+    config=rt.SolverConfig(frequency_hz=77e9,max_interactions=1,max_distance=3.9)
+    return scene,beam,receiver,config
 
 
-if __name__ == "__main__":
-    main()
+def main(show=True):
+    output=Path('results/example2')
+    output.mkdir(parents=True,exist_ok=True)
+    scene,beam,receiver,config=make_scene()
+    viewer=rt.inspect_scene(scene,beam,receiver,frequency_hz=config.frequency_hz,path=output/'pretrace.png',show=show)
+    viewer.close()
+    result=rt.solve(scene,beam,config)
+    rt.save_result(result,output/'simulation.json')
+    viewer=rt.visualize(result,transmitters=beam,receivers=receiver,path=output/'paths.png',show=show)
+    viewer.close()
+    rt.plot_field(result,[[x,0,1] for x in np.linspace(-.1,.1,201)],path=output/'focus.png',show=show)
+    print(result.power_balance)
+    print('Field includes coherent incident and reflected beams.')
+    return result
+
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--no-show',action='store_true')
+    main(not parser.parse_args().no_show)

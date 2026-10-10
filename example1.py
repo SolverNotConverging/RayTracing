@@ -1,64 +1,38 @@
-"""Mixed-geometry simulation with a horizontal CST transmitter.
-
-Run with .venv/Scripts/python.exe example1.py to open the desktop viewer.
-"""
+"""Focused Gaussian beam through a lossy dielectric slab."""
 from pathlib import Path
-
-import matplotlib.pyplot as plt
+import argparse
 import numpy as np
-
 import raytracing as rt
 
 
-def main():
-    config = rt.SolverConfig(
-        frequency_hz=77e9,
-        ray_count=20_000,
-        max_reflections=8,
-        max_distance=20.0,
-    )
-
-    x, y, z = np.eye(3)
-    scene = rt.Scene()
-    scene.add(rt.Rectangle([1.5, 0, 0], y, z, 3, 1))
-    scene.add(rt.Rectangle([-1.5, 0, 0], y, z, 3, 1))
-    scene.add(rt.Rectangle([0, -3, 0], x, z, 3, 1))
-    scene.add(rt.Rectangle([0, 3, 0], x, z, 3, 1))
-    scene.add(rt.Sphere([0.7, -1.2, 0], 0.3))
-    scene.add(rt.Disk([-0.7, -1.3, 0], y, 0.35))
-    axis = np.array([0.2, 0, 1.0])
-    axis /= np.linalg.norm(axis)
-    scene.add(rt.Cylinder([0.6, 2, 0], axis, 0.25, 0.7, capped=True))
-    scene.add(rt.Triangle([-1, 0, 0.8], [0, 0, 0.8], [-0.5, 1, 0.8]))
-
-    patch = rt.load_farfield(rt.example_pattern())  # CST positive-time import by default.
-    patch.rotate(y, -90.0)  # Native -z beam rotated toward horizontal +x.
-    tx = rt.Transmitter([0, 0, 0], patch)
-    rx = rt.Receiver([-0.5, 1.4, 0], rt.Isotropic())
-
-    print("Running example 1...", flush=True)
-    result = rt.solve(scene, tx, rx, config)
-    print(
-        f"{len(result.rays)} paths, {len(result.response_ray_indices)} paths with fields, "
-        f"{len(result.impulse_response.taps)} impulse taps",
-        flush=True,
-    )
-
-    output = Path(__file__).resolve().parent / "results" / "example1"
-    output.mkdir(parents=True, exist_ok=True)
-    rt.save_h5(result, output / "simulation.h5")
-    rt.save_impulse_csv(result.impulse_response, output / "impulse_response.csv")
-    figure = rt.plot(result.impulse_response, output / "impulse_response.png")
-    plt.close(figure)
-    viewer = rt.visualize(result)
-    try:
-        viewer.screenshot(str(output / "scene.png"))
-    finally:
-        viewer.close()
-    print(f"Results saved to {output}", flush=True)
-    print("Drag to rotate; Shift+drag to pan; scroll to zoom. Close the viewer to exit.", flush=True)
-    rt.show(result)
+def make_scene():
+    scene=rt.Scene()
+    scene.add_volume(rt.Box([0,0,.51],[.5,.5,.01]),rt.Material.dielectric(4+.02j,name='lossy glass'))
+    scene.add_termination(rt.Box([0,0,.8],[2,2,1.8]),volume=True,on='exit')
+    beam=rt.GaussianBeam([0,0,.8],[0,0,1],.04,launch_distance=-.8)
+    config=rt.SolverConfig(frequency_hz=77e9,max_interactions=20,max_distance=8)
+    receiver=rt.GaussianBeam([0,0,1],[0,0,-1],.04)
+    return scene,beam,receiver,config
 
 
-if __name__ == "__main__":
-    main()
+def main(show=True):
+    output=Path('results/example1')
+    output.mkdir(parents=True,exist_ok=True)
+    scene,beam,receiver,config=make_scene()
+    viewer=rt.inspect_scene(scene,beam,receiver,frequency_hz=config.frequency_hz,
+                            path=output/'pretrace.png',show=show)
+    viewer.close()
+    result=rt.solve(scene,beam,config)
+    rt.save_result(result,output/'simulation.json')
+    viewer=rt.visualize(result,transmitters=beam,receivers=receiver,path=output/'paths.png',show=show)
+    viewer.close()
+    rt.plot_field(result,[[x,0,1] for x in np.linspace(-.15,.15,201)],path=output/'profile.png',show=show)
+    print(result.power_balance)
+    print('Warnings:',result.warnings)
+    return result
+
+
+if __name__=='__main__':
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--no-show',action='store_true')
+    main(not parser.parse_args().no_show)

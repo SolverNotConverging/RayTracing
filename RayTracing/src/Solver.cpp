@@ -2,10 +2,22 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <string>
 
 namespace rt {
     namespace {
         bool positive(double x) { return std::isfinite(x) && x > 0; }
+
+        const char *antenna_kind_name(AntennaKind kind) {
+            switch (kind) {
+                case AntennaKind::Isotropic: return "isotropic";
+                case AntennaKind::ShortDipole: return "short dipole";
+                case AntennaKind::ThinWireDipole: return "thin-wire dipole";
+                case AntennaKind::RectangularAperture: return "rectangular aperture";
+                case AntennaKind::Imported: return "imported pattern";
+            }
+            return "unknown";
+        }
 
         void validate_config(const SolverConfig &s) {
             if (!positive(s.frequencyHz) || s.rayCount == 0 || s.maxReflections < 0 ||
@@ -49,8 +61,8 @@ namespace rt {
             result.impulseResponse.frequencyHz_ = cfg.frequencyHz;
             result.impulseResponse.receiverPolarization_ = Vec3C::Zero();
             result.impulseResponse.receiverModel_ =
-                    "reciprocal antenna port (kind " +
-                    std::to_string(static_cast<int>(result.receiver.antenna.kind)) + ")";
+                    std::string("reciprocal antenna port (") +
+                    antenna_kind_name(result.receiver.antenna.kind) + ")";
             // Restore actual incident vector sums: scalar projection and vector data are
             // separate.
             for (auto &tap: result.impulseResponse.taps_) {
@@ -76,10 +88,7 @@ namespace rt {
         result.scene = scene;
         result.transmitter = tx;
         result.receiver = rx;
-        TraceOptions tracing{
-            settings.maxReflections, settings.maxDistance,
-            settings.medium.refractive_index()
-        };
+        const TraceOptions tracing{settings.maxReflections, settings.maxDistance};
         auto refinement = settings.refinement;
         refinement.maxPathDistance_ = settings.maxDistance;
         auto spread = settings.spreading;
@@ -94,12 +103,12 @@ namespace rt {
             directions.push_back(directOffset.normalized());
         std::vector<RefinementResult> trials;
         for (const auto &direction: directions) {
-            // Geometry discovery is independent of source-pattern nulls.
-            EMRay ray(tx.position, direction, launch_polarization(direction),
-                      C / settings.frequencyHz);
+            // Geometry discovery is independent of source-pattern nulls and of
+            // materials: every surface reflects specularly whatever its loss.
+            TracedRay ray(tx.position, direction);
             bool received = false;
             const auto traced = trace_ray(ray, scene.surfaces(), rx.position,
-                                          settings.receptionRadius, tracing, [&](const EMRay &candidateRay) {
+                                          settings.receptionRadius, tracing, [&](const TracedRay &candidateRay) {
                                               received = true;
                                               std::vector<std::size_t> sequence;
                                               for (const auto &hit: candidateRay.reflections_)
@@ -108,8 +117,7 @@ namespace rt {
                                                                          scene.surfaces(), sequence, refinement);
                                               Candidate candidate;
                                               candidate.refinement = refined;
-                                              for (const auto &point: candidateRay.path_)
-                                                  candidate.coarseVertices.push_back(point.position_);
+                                              candidate.coarseVertices = candidateRay.vertices_;
                                               result.candidates.push_back(std::move(candidate));
                                               trials.push_back(std::move(refined));
                                           });
@@ -137,11 +145,11 @@ namespace rt {
             if (ray.spreading.status_ == SpreadingStatus::Valid) {
                 FieldReconstructionOptions field;
                 field.frequencyHz_ = settings.frequencyHz;
-                field.refractiveIndex_ = tracing.refractiveIndex_;
+                field.medium_ = settings.medium;
                 field.receiverTolerance_ = refinement.receiverTolerance_;
                 field.sourceReferenceAmplitude_ = settings.commonSourceReference;
                 ray.field =
-                        reconstruct_field(path, ray.spreading, ray.sourceField, field);
+                        reconstruct_field(path, ray.spreading, ray.sourceField, scene.materials(), field);
             }
             result.rays.push_back(std::move(ray));
         }

@@ -1,14 +1,19 @@
 #include "Antenna.hpp"
-#include "EMRay.hpp"
+#include "Constants.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace rt {
     namespace {
+        constexpr double PI = constants::pi;
+        constexpr double C = constants::speedOfLight;
+
         bool positive(double x) { return std::isfinite(x) && x > 0; }
 
         bool finite(Complex x) {
@@ -141,6 +146,32 @@ namespace rt {
                     .eval(); // Preserve transversality after Cartesian interpolation.
         }
 
+        // Gauss-Legendre nodes and weights on [-1, 1] by Newton iteration.
+        std::pair<std::vector<double>, std::vector<double> > gauss_legendre(std::size_t n) {
+            std::vector<double> x(n), w(n);
+            for (std::size_t i = 0; i < (n + 1) / 2; ++i) {
+                double z = std::cos(PI * (static_cast<double>(i) + 0.75) / (static_cast<double>(n) + 0.5));
+                double derivative = 0;
+                for (int iteration = 0; iteration < 100; ++iteration) {
+                    double p0 = 1, p1 = 0;
+                    for (std::size_t k = 1; k <= n; ++k) {
+                        const double p2 = p1;
+                        p1 = p0;
+                        p0 = ((2.0 * k - 1.0) * z * p1 - (k - 1.0) * p2) / static_cast<double>(k);
+                    }
+                    derivative = static_cast<double>(n) * (z * p0 - p1) / (z * z - 1.0);
+                    const double step = p0 / derivative;
+                    z -= step;
+                    if (std::abs(step) < 1e-15)
+                        break;
+                }
+                x[i] = -z;
+                x[n - 1 - i] = z;
+                w[i] = w[n - 1 - i] = 2.0 / ((1.0 - z * z) * derivative * derivative);
+            }
+            return {x, w};
+        }
+
         double sinc(double x) {
             return std::abs(x) < 1e-8 ? 1 - x * x / 6 : std::sin(x) / x;
         }
@@ -173,22 +204,6 @@ namespace rt {
                     throw std::invalid_argument("Pattern axes must be increasing");
         }
     } // namespace
-
-    double Medium::refractive_index() const {
-        if (!positive(relativePermittivity) || !positive(relativePermeability))
-            throw std::invalid_argument(
-                "Medium must have positive finite epsilon_r and mu_r");
-        const double n =
-                std::sqrt(relativePermittivity) * std::sqrt(relativePermeability);
-        if (!positive(n))
-            throw std::invalid_argument("Medium index overflow");
-        return n;
-    }
-
-    double Medium::impedance() const {
-        refractive_index();
-        return 376.730313668 * std::sqrt(relativePermeability / relativePermittivity);
-    }
 
     Antenna &Antenna::rotate(const Vec3 &worldAxis, double angleDegrees) {
         if (!worldAxis.allFinite() || !std::isfinite(angleDegrees))
@@ -338,11 +353,26 @@ namespace rt {
                    shortDipole.effectiveLengthMetres *
                    std::norm(shortDipole.currentAmperes) / (12 * PI);
         }
+        // Integrate |rE|^2 / (2 eta) over the sphere in antenna-local coordinates:
+        // Gauss-Legendre in cos(theta) on each hemisphere (the PEC-backed aperture
+        // is discontinuous at the local horizon) and the spectrally accurate
+        // trapezoidal rule in the periodic azimuth.
+        constexpr std::size_t thetaNodes = 128, phiNodes = 256;
+        const auto [nodes, weights] = gauss_legendre(thetaNodes);
         double power = 0;
-        constexpr std::size_t count = 4096;
-        for (const auto &d: launch_directions(count))
-            power += farfield(d, f, m).squaredNorm();
-        power *= 4 * PI / (count * 2 * m.impedance());
+        for (double hemisphere: {-1.0, 1.0})
+            for (std::size_t i = 0; i < thetaNodes; ++i) {
+                const double z = 0.5 * hemisphere * (nodes[i] + 1.0);
+                const double rho = std::sqrt(std::max(0.0, (1.0 - z) * (1.0 + z)));
+                double ring = 0;
+                for (std::size_t j = 0; j < phiNodes; ++j) {
+                    const double phi = 2 * PI * (static_cast<double>(j) + 0.5) / phiNodes;
+                    const Vec3 local(rho * std::cos(phi), rho * std::sin(phi), z);
+                    ring += farfield((orientation * local).normalized(), f, m).squaredNorm();
+                }
+                power += 0.5 * weights[i] * ring * (2 * PI / phiNodes);
+            }
+        power /= 2 * m.impedance();
         if (!positive(power))
             throw std::invalid_argument("Antenna has zero radiated power");
         return power;

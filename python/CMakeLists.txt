@@ -9,7 +9,7 @@ execute_process(COMMAND "${Python_EXECUTABLE}" -m pybind11 --cmakedir
 file(TO_CMAKE_PATH "${_pybind11_dir}" _pybind11_dir)
 find_package(pybind11 3.0 CONFIG REQUIRED HINTS "${_pybind11_dir}")
 pybind11_add_module(_core MODULE NO_EXTRAS
-        bindings/module.cpp bindings/geometry.cpp bindings/antennas.cpp
+        bindings/module.cpp bindings/geometry.cpp bindings/materials.cpp bindings/antennas.cpp
         bindings/solver.cpp bindings/results.cpp)
 target_link_libraries(_core PRIVATE RayTracing::IO)
 target_compile_definitions(_core PRIVATE RAYTRACING_VERSION="${PROJECT_VERSION}")

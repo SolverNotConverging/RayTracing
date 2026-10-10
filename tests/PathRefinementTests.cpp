@@ -1,5 +1,5 @@
 #include "PathRefinement.hpp"
-#include "EMRay.hpp"
+#include "Tracing.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -127,16 +127,16 @@ int main() try {
     check(deduplicate_paths({a, b, c}).size() == 2, "Transitive duplicate merging swallowed a distinct path");
 
     // Recorded events refer to actual completed reflections and incident samples.
-    EMRay ray(O, Vec3(1, 1, 0).normalized(), Z.cast<Complex>(), 0.01);
+    TracedRay ray(O, Vec3(1, 1, 0).normalized());
     TraceOptions traceOptions;
     const auto traced = trace_ray(ray, wall, rx, 0.1, traceOptions);
     check(traced.status_ == TraceStatus::Received && ray.reflections_.size() == 1, "Reflection event missing");
     const auto &event = ray.reflections_[0];
     check(event.surfaceIndex_ == 0 && (event.normal_ - X).norm() < 1e-12, "Event surface or normal incorrect");
-    check(event.incidentSampleIndex_ + 1 < ray.path_.size() &&
-          (ray.path_[event.incidentSampleIndex_].position_ - Vec3(1, 1, 0)).norm() < 1e-12,
-          "Event incident sample incorrect");
-    EMRay limited(O, X, Z.cast<Complex>(), 0.01);
+    check(event.vertexIndex_ < ray.vertices_.size() &&
+          (ray.vertices_[event.vertexIndex_] - Vec3(1, 1, 0)).norm() < 1e-12,
+          "Event hit vertex incorrect");
+    TracedRay limited(O, X);
     traceOptions.maxReflections_ = 0;
     trace_ray(limited, wall, -X, 0.1, traceOptions);
     check(limited.reflections_.empty(), "Unperformed reflection recorded");
@@ -152,11 +152,11 @@ int main() try {
     // and return into it. Refinement collapses the two hits toward the corner.
     for (double offset : {-0.01, 0.01}) {
         const Vec3 launch = Vec3(1, 1 + offset, 0).normalized();
-        EMRay candidate(O, launch, Z.cast<Complex>(), 0.01);
+        TracedRay candidate(O, launch);
         const auto received = trace_ray(candidate, corner, O, 0.1);
         check(received.status_ == TraceStatus::Received && received.reflections_ == 2 && received.distance_ > 2,
               "Monostatic corner return terminated at launch or failed reception");
-        check(std::abs(candidate.path_.back().position_.norm() - 0.1) < 1e-10,
+        check(std::abs(candidate.position().norm() - 0.1) < 1e-10,
               "Return did not stop at sphere entry");
         std::vector<std::size_t> sequence;
         for (const auto &event : candidate.reflections_) sequence.push_back(event.surfaceIndex_);
@@ -171,10 +171,10 @@ int main() try {
     converged(separated);
     check(separated.geometry_.reflections_[1].segmentDistance_ > 0.1,
           "Separated corner solution unexpectedly collapsed");
-    EMRay freeSpace(O, X, Z.cast<Complex>(), 0.01);
+    TracedRay freeSpace(O, X);
     check(trace_ray(freeSpace, {}, O, 0.1).status_ == TraceStatus::Escaped,
           "Launch inside Rx without a return was received");
-    EMRay normalReturn(O, X, Z.cast<Complex>(), 0.01);
+    TracedRay normalReturn(O, X);
     const auto singleReturn = trace_ray(normalReturn, wall, O, 0.1);
     check(singleReturn.status_ == TraceStatus::Received && singleReturn.reflections_ == 1,
           "Single-face monostatic return was lost");

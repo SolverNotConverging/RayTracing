@@ -1,6 +1,6 @@
 find_package(Eigen3 CONFIG REQUIRED)
 add_library(RayTracingCore STATIC
-        src/Surface.cpp src/EMRay.cpp src/SequenceEvaluator.cpp src/PathRefinement.cpp
+        src/Surface.cpp src/Material.cpp src/Tracing.cpp src/SequenceEvaluator.cpp src/PathRefinement.cpp
         src/Spreading.cpp src/FieldReconstruction.cpp src/ImpulseResponse.cpp
         src/Antenna.cpp src/Solver.cpp)
 add_library(RayTracing::RayTracing ALIAS RayTracingCore)

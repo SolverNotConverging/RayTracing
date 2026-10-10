@@ -1,10 +1,15 @@
 #include <RayTracing/ResultIO.hpp>
 #include <RayTracing/Solver.hpp>
+#include <RayTracing/Constants.hpp>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 
 namespace {
+constexpr double C = rt::constants::speedOfLight;
+constexpr double PI = rt::constants::pi;
+constexpr double ETA0 = rt::constants::freeSpaceImpedance;
+
 void check(bool v, const char *m) {
   if (!v)
     throw std::runtime_error(m);
@@ -46,7 +51,7 @@ int main() try {
        "Isotropic amplitude incorrect");
   Antenna small = ShortDipole{1e-4, 1};
   small.validate(77e9);
-  const double expected = 376.730313668 * 2 * PI * 77e9 / C * 1e-4 / (4 * PI);
+  const double expected = ETA0 * 2 * PI * 77e9 / C * 1e-4 / (4 * PI);
   near(small.farfield(Vec3::UnitX(), 77e9)[2], Complex(0, expected),
        "Short dipole analytical field incorrect");
   near(small.farfield(Vec3::UnitZ(), 77e9).norm(), 0, "Dipole axial null lost");
@@ -56,8 +61,24 @@ int main() try {
   Antenna half = ThinWireDipole{C / 77e9 / 2, 1};
   half.validate(77e9);
   near(half.farfield(Vec3::UnitX(), 77e9)[2],
-       Complex(0, 376.730313668 / (2 * PI)),
+       Complex(0, ETA0 / (2 * PI)),
        "Half-wave dipole broadside field incorrect");
+  {
+    // R_rad = eta Cin(2 pi) / (4 pi); Cin(x) = int_0^x (1 - cos t) / t dt by
+    // composite Simpson, independent of the antenna quadrature.
+    const int n = 200000;
+    const double h = 2 * PI / n;
+    double cin = 0;
+    for (int i = 0; i <= n; ++i) {
+      const double t = i * h;
+      const double f = i == 0 ? 0.0 : (1 - std::cos(t)) / t;
+      cin += (i == 0 || i == n ? 1 : (i % 2 ? 4 : 2)) * f;
+    }
+    cin *= h / 3;
+    const double expectedPower = 0.5 * ETA0 * cin / (4 * PI); // |I| = 1 A
+    check(std::abs(half.reference_power(77e9) / expectedPower - 1) < 1e-9,
+          "Half-wave dipole radiated power quadrature inaccurate");
+  }
   Antenna aperture =
       RectangularAperture{2 * C / 77e9, 2 * C / 77e9, 1, 0, true};
   aperture.validate(77e9);
@@ -139,7 +160,7 @@ int main() try {
   // representation.
   near(hfss.receive(Vec3::UnitX(),
                     Complex(0, 1) * Vec3::UnitZ().cast<Complex>(), 77e9),
-       Complex(-3, 2) * std::sqrt(4 * PI / (2 * 376.730313668)),
+       Complex(-3, 2) * std::sqrt(4 * PI / (2 * ETA0)),
        "Receive pattern accidentally conjugated");
 
   SolverConfig cfg;
@@ -168,9 +189,10 @@ int main() try {
        "Source null generated field");
 
   // Colocated patch antennas must find a physical return rather than a direct ray.
+  const auto pec = Material::pec();
   Scene tube;
-  tube.add(Cylinder{{0, 0, -0.25}, Vec3::UnitZ(), 0.127, 0.25, false});
-  tube.add(Disk{{0, 0, -0.5}, -Vec3::UnitZ(), 0.127});
+  tube.add(Cylinder{{0, 0, -0.25}, Vec3::UnitZ(), 0.127, 0.25, false}, pec);
+  tube.add(Disk{{0, 0, -0.5}, -Vec3::UnitZ(), 0.127}, pec);
   auto monostaticConfig = cfg;
   monostaticConfig.rayCount = 512;
   monostaticConfig.maxReflections = 8;
@@ -200,18 +222,22 @@ int main() try {
         "Empty monostatic scene generated a direct return");
 
   // Embed the real CST pattern at both ends, plus every geometry variant.
+  const auto copper = Material::conductor("copper", 5.8e7);
+  const auto glass = Material::lossy("glass", 6.0, 0.01, 1e-3, 1.0);
   Scene full;
-  full.add(Sphere{{10, 0, 0}, 1});
-  full.add(Disk{{11, 0, 0}, Vec3::UnitX(), 1});
-  full.add(Rectangle{{12, 0, 0}, Vec3::UnitY(), Vec3::UnitZ(), 1, 1});
-  full.add(Cylinder{{13, 0, 0}, Vec3::UnitZ(), 1, 1, true});
-  full.add(Triangle{{14, 0, 0}, {14, 1, 0}, {14, 0, 1}});
+  full.add(Sphere{{10, 0, 0}, 1}, pec);
+  full.add(Disk{{11, 0, 0}, Vec3::UnitX(), 1}, copper);
+  full.add(Rectangle{{12, 0, 0}, Vec3::UnitY(), Vec3::UnitZ(), 1, 1}, glass);
+  full.add(Cylinder{{13, 0, 0}, Vec3::UnitZ(), 1, 1, true}, pec);
+  full.add(Triangle{{14, 0, 0}, {14, 1, 0}, {14, 0, 1}}, copper);
   tx.antenna = patch;
   rx.position = Vec3(3, 0, 0);
   rx.antenna = rotatedPatch;
   auto patterned = solve(full, tx, rx, cfg);
   save_h5(patterned, folder / "simulation.h5");
   const auto loaded = load_h5(folder / "simulation.h5");
+  check(loaded.scene.materials() == full.materials(),
+        "HDF5 surface materials lost");
   check(loaded.scene.surfaces().size() == 5 &&
             loaded.rays.size() == patterned.rays.size() &&
             loaded.candidates.size() == patterned.candidates.size(),

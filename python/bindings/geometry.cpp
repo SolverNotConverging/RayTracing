@@ -1,6 +1,13 @@
 #include "bindings.hpp"
 
 void bind_geometry(py::module_ &m) {
+    m.def("_validate_surface", &validate_surface);
+    m.def("_intersect", [](const Surface &shape, const Vec3 &origin, const Vec3 &direction,
+                           double tMin, double tMax) -> py::object {
+        const auto hit = std::visit([&](const auto &s) { return intersect(origin, direction, s, tMin, tMax); }, shape);
+        if (!hit) return py::none();
+        return py::make_tuple(hit->distance_, hit->normal_);
+    });
     py::class_<Rectangle>(m, "Rectangle")
             .def(py::init<Vec3, Vec3, Vec3, double, double>(), py::arg("center"), py::arg("u"),
                  py::arg("v"), py::arg("half_width"), py::arg("half_height"))
@@ -26,7 +33,10 @@ void bind_geometry(py::module_ &m) {
             .def_readwrite("a", &Triangle::a_).def_readwrite("b", &Triangle::b_).def_readwrite("c", &Triangle::c_);
     py::class_<rt::Scene>(m, "Scene")
             .def(py::init<>())
-            .def("add", &rt::Scene::add, py::arg("surface"), "Validate and copy a surface into the scene.")
+            .def("add", &rt::Scene::add, py::arg("surface"), py::arg("material"),
+                 "Validate and copy a surface and its material into the scene; return the surface index.")
             .def_property_readonly("surfaces", [](const rt::Scene &s) { return s.surfaces(); })
+            .def_property_readonly("materials", [](const rt::Scene &s) { return s.materials(); },
+                                   "Material of each surface, indexed like surfaces.")
             .def("__len__", [](const rt::Scene &s) { return s.surfaces().size(); });
 }

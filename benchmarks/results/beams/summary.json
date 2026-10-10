@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "solver_version": "0.5.0",
+  "python": "3.14.5 (main, Jun  2 2026, 22:34:49) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "utc": "2026-10-10T12:44:43.750149+00:00",
+  "checks": [
+    {
+      "name": "Gaussian complex field across waist",
+      "max_error": 5.882336134630191e-14,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Gaussian receiver quadrature",
+      "max_error": 3.1789750237543046e-05,
+      "tolerance": 4e-05,
+      "passed": true
+    },
+    {
+      "name": "Gaussian quadrature error reduction",
+      "max_error": 0.00022204787092884725,
+      "tolerance": 0.001,
+      "passed": true
+    },
+    {
+      "name": "Slab coherent amplitude eps=(4+0j)",
+      "max_error": 4.33433849665715e-15,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Slab convergence eps=(4+0j)",
+      "max_error": 3.900904646991557e-14,
+      "tolerance": 1e-08,
+      "passed": true
+    },
+    {
+      "name": "Slab coherent amplitude eps=(4+0.02j)",
+      "max_error": 4.313774480222227e-15,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Slab convergence eps=(4+0.02j)",
+      "max_error": 3.98950873842543e-14,
+      "tolerance": 1e-08,
+      "passed": true
+    },
+    {
+      "name": "Slab branch energy accounting",
+      "max_error": 3.267614596150056e-16,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "Pruning convergence",
+      "max_error": 4.33433849665715e-15,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Fresnel angle sweep",
+      "max_error": 3.3306690738754696e-16,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "Snell refraction",
+      "max_error": 5.551115123125783e-17,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "Lossless R+T",
+      "max_error": 4.440892098500626e-16,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "Concave mirror complex field and Gouy phase",
+      "max_error": 1.141796657920723e-13,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Concave mirror beam width",
+      "max_error": 5.551115123125783e-17,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "Oblique spherical mirror astigmatism",
+      "max_error": 4.440892098500626e-16,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Homogeneous absorption and phase",
+      "max_error": 0.0,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "Gaussian beamlet spatial convergence",
+      "max_error": 2.628876639994103e-09,
+      "tolerance": 2e-06,
+      "passed": true
+    },
+    {
+      "name": "Gaussian beamlet error reduction",
+      "max_error": 1.2733221819957137e-09,
+      "tolerance": 0.0001,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "assumptions": [
+    "paraxial Gaussian beams",
+    "homogeneous isotropic regions",
+    "weak-loss transport",
+    "opaque PEC/metal",
+    "no aperture clipping or edge diffraction"
+  ]
+}

@@ -1,5 +1,9 @@
 .idea
 
+# Local compiler/package-manager configuration and install shortcut.
+CMakeUserPresets.json
+/install.ps1
+
 .venv
 
 cmake-build-debug

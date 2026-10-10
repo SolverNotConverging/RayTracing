@@ -72,6 +72,8 @@ void bind_results(py::module_ &m) {
             .def_readonly("normalized_receiver_field", &ReconstructedField::normalizedReceiverField_)
             .def_readonly("transported_reference_field", &ReconstructedField::transportedReferenceField_)
             .def_readonly("arrival_direction", &ReconstructedField::arrivalDirection_)
+            .def_readonly("reflections", &ReconstructedField::reflections_,
+                          "Fresnel coefficients of each reflection, in path order.")
             .def_readonly("path_distance", &ReconstructedField::pathDistance_)
             .def_readonly("optical_path", &ReconstructedField::opticalPath_)
             .def_readonly("delay_seconds", &ReconstructedField::delaySeconds_)

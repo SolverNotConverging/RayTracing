@@ -33,18 +33,19 @@ void check_geometry(const rt::SimulationResult &result) {
 
 int main() try {
     const Vec3 origin = Vec3::Zero();
+    const auto pec = rt::Material::pec();
     rt::Scene tube;
-    tube.add(Cylinder{{0, 0, -0.25}, Vec3::UnitZ(), 0.127, 0.25, false});
-    tube.add(Disk{{0, 0, -0.5}, -Vec3::UnitZ(), 0.127});
+    tube.add(Cylinder{{0, 0, -0.25}, Vec3::UnitZ(), 0.127, 0.25, false}, pec);
+    tube.add(Disk{{0, 0, -0.5}, -Vec3::UnitZ(), 0.127}, pec);
     const auto &surfaces = tube.surfaces();
 
     // An exact eight-wall + bottom return passes near Rx before reaching bottom.
     // The capture sphere must not absorb it at that first, unrefinable near-pass.
     const Vec3 launch = Vec3(8 * 0.127, 0, -0.5).normalized();
-    EMRay ray(origin, launch, launch_polarization(launch), C / 77e9);
-    TraceOptions tracing{9, 20, 1};
+    TracedRay ray(origin, launch);
+    TraceOptions tracing{9, 20};
     bool earlyPass = false, fullReturn = false;
-    trace_ray(ray, surfaces, origin, 0.12, tracing, [&](const EMRay &candidate) {
+    trace_ray(ray, surfaces, origin, 0.12, tracing, [&](const TracedRay &candidate) {
         earlyPass = earlyPass || candidate.reflections_.size() == 1;
         if (candidate.reflections_.size() != 9) return;
         std::vector<std::size_t> sequence;

@@ -1,5 +1,10 @@
 # Analytical spreading benchmarks
 
+For the **0.5 public beam/volume solver**, see [BEAMS.md](BEAMS.md) and run
+`python benchmarks/beam_transport.py`. Its checked-in results are under
+`results/beams`. The remainder of this document describes the internal native
+point-source spreading reference.
+
 `SpreadingBenchmarks.cpp` validates the numerical spreading calculator against
 independent closed-form predictions and writes CSV data. `plot_results.py` creates
 the comparison figures using Matplotlib in the existing `.venv`.

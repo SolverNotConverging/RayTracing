@@ -1,4 +1,4 @@
-#include "EMRay.hpp"
+#include "Tracing.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -111,18 +111,19 @@ int main() try {
     rejects([&] { intersect(Vec3::Zero(), 2 * X, sphere); });
     rejects([&] { intersect(Vec3::Zero(), X, sphere, 2, 1); });
 
-    // A sphere's local normal must feed the same PEC update as a planar surface.
-    EMRay ray(Vec3::Zero(), X, Vec3C(Complex{0, 0}, Complex{1, 0}, Complex{0, 0.5}), 1);
-    const auto result = trace_ray(ray, {Sphere{Vec3(2, 0, 0), 0.5}}, Vec3(-1, 0, 0), 0.1, {1, 10, 1});
+    // A sphere's local normal must give the same reflection law as a planar surface.
+    TracedRay ray(Vec3::Zero(), X);
+    const auto result = trace_ray(ray, {Sphere{Vec3(2, 0, 0), 0.5}}, Vec3(-1, 0, 0), 0.1, {1, 10});
     check(result.status_ == TraceStatus::Received && result.reflections_ == 1, "Curved reflection failed to reach Rx");
-    check(std::abs(result.distance_ - 3.9) < 1e-10, "Reflected distance incorrect");
-    check(ray.path_.size() == 4, "Incident/reflected sample history lost");
-    check((ray.path_[1].E_ + ray.path_[2].E_).norm() < 1e-10, "PEC tangential field not cancelled");
-    check(std::abs(ray.direction_.cast<Complex>().dot(ray.path_.back().E_)) < 1e-10, "Reflected field not transverse");
+    check(std::abs(result.distance_ - 3.9) < 1e-10 && std::abs(ray.distance_ - 3.9) < 1e-10,
+          "Reflected distance incorrect");
+    check(ray.vertices_.size() == 3 && (ray.vertices_[1] - Vec3(1.5, 0, 0)).norm() < 1e-12,
+          "Hit vertex history incorrect");
+    check(ray.reflections_.size() == 1 && ray.reflections_[0].vertexIndex_ == 1, "Reflection event incorrect");
     const auto oblique = intersect(Vec3(0, 0.5, 0), X, sphere);
-    EMRay angled(Vec3(0, 0.5, 0), X, Z, 1);
-    angled.propagate(oblique->distance_, 1);
-    angled.reflect_pec(oblique->normal_);
+    TracedRay angled(Vec3(0, 0.5, 0), X);
+    angled.advance(oblique->distance_);
+    angled.reflect(oblique->normal_, 0);
     check(std::abs(angled.direction_.dot(oblique->normal_) + X.dot(oblique->normal_)) < 1e-10, "Reflection law failed");
 
     // An exact sharp corner must stop without choosing an arbitrary normal.
@@ -134,14 +135,14 @@ int main() try {
     for (bool reversed : {false, true}) {
         const std::vector<Surface> corner = reversed ? std::vector<Surface>{cornerY, cornerX}
                                                    : std::vector<Surface>{cornerX, cornerY};
-        EMRay cornerRay(Vec3::Zero(), cornerDirection, Z.cast<Complex>(), 1);
+        TracedRay cornerRay(Vec3::Zero(), cornerDirection);
         // Keep Rx off the ray paths, and leave enough distance/reflection budget.
-        const auto cornerResult = trace_ray(cornerRay, corner, Vec3(0, 0, 10), 0.1, {8, 20, 1});
+        const auto cornerResult = trace_ray(cornerRay, corner, Vec3(0, 0, 10), 0.1, {8, 20});
         check(cornerResult.status_ == TraceStatus::AmbiguousHit, "Exact corner not flagged");
         check(cornerResult.reflections_ == 0 && cornerRay.reflections_.empty(),
               "Ambiguous corner produced a reflection");
-        check((cornerRay.path_[1].position_ - Vec3(1, 1, 0)).norm() < 1e-12, "Ray missed corner");
-        check(cornerRay.path_.size() == 2 && (cornerRay.direction_ - cornerDirection).norm() < 1e-12,
+        check((cornerRay.vertices_[1] - Vec3(1, 1, 0)).norm() < 1e-12, "Ray missed corner");
+        check(cornerRay.vertices_.size() == 2 && (cornerRay.direction_ - cornerDirection).norm() < 1e-12,
               "Ambiguous ray must stop with incident direction and sample");
         check(std::abs(cornerResult.distance_ - std::sqrt(2.0)) < 1e-12, "Corner stop distance incorrect");
         std::cout << "Exact corner (" << (reversed ? "y wall first" : "x wall first")
@@ -151,8 +152,8 @@ int main() try {
     // Nearby rays encounter two distinct points and reflect from both faces.
     for (double offset : {-1e-4, 1e-4}) {
         const Vec3 direction = Vec3(1, 1 + offset, 0).normalized();
-        EMRay nearby(Vec3::Zero(), direction, Z.cast<Complex>(), 1);
-        const auto nearbyResult = trace_ray(nearby, {cornerX, cornerY}, Vec3(0, 0, 10), 0.1, {8, 20, 1});
+        TracedRay nearby(Vec3::Zero(), direction);
+        const auto nearbyResult = trace_ray(nearby, {cornerX, cornerY}, Vec3(0, 0, 10), 0.1, {8, 20});
         check(nearbyResult.status_ == TraceStatus::Escaped && nearbyResult.reflections_ == 2,
               "Near-corner ray should reflect twice");
         check((nearby.direction_ + direction).norm() < 1e-12, "Two perpendicular reflections should reverse this ray");
@@ -163,11 +164,11 @@ int main() try {
     const auto nearTie = nearest_surface(Vec3::Zero(), Vec3(1, 1 + 1e-9, 0).normalized(),
                                          {cornerX, cornerY}, 1e-12);
     check(nearTie && nearTie->ambiguous_, "Near-simultaneous corner not detected");
-    EMRay beforeCorner(Vec3::Zero(), cornerDirection, Z.cast<Complex>(), 1);
+    TracedRay beforeCorner(Vec3::Zero(), cornerDirection);
     check(trace_ray(beforeCorner, {cornerX, cornerY}, Vec3(0.5, 0.5, 0), 0.01).status_ == TraceStatus::Received,
           "Corner beyond receiver prevented reception");
-    EMRay shortCorner(Vec3::Zero(), cornerDirection, Z.cast<Complex>(), 1);
-    check(trace_ray(shortCorner, {cornerX, cornerY}, Vec3(0, 0, 10), 0.1, {8, 1, 1}).status_ == TraceStatus::DistanceLimit,
+    TracedRay shortCorner(Vec3::Zero(), cornerDirection);
+    check(trace_ray(shortCorner, {cornerX, cornerY}, Vec3(0, 0, 10), 0.1, {8, 1}).status_ == TraceStatus::DistanceLimit,
           "Corner beyond distance limit terminated trace early");
 
     // Two coplanar triangles with opposite winding meet at the ray hit.
@@ -178,7 +179,7 @@ int main() try {
     const auto seamHit = nearest_surface(Vec3::Zero(), X, seam);
     check(seamHit && !seamHit->ambiguous_ && seamHit->coincidentSurfaceIndices_.size() == 2,
           "Coplanar seam incorrectly ambiguous");
-    EMRay seamRay(Vec3::Zero(), X, Z.cast<Complex>(), 1);
+    TracedRay seamRay(Vec3::Zero(), X);
     const auto seamResult = trace_ray(seamRay, seam, -X, 0.1);
     check(seamResult.status_ == TraceStatus::Received && seamResult.reflections_ == 1,
           "Coplanar seam failed to reflect normally");

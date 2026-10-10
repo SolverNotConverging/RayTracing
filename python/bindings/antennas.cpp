@@ -15,12 +15,6 @@ void bind_antennas(py::module_ &m) {
     py::enum_<PowerReference>(m, "PowerReference")
             .value("ACCEPTED", PowerReference::Accepted).value("RADIATED", PowerReference::Radiated)
             .value("STIMULATED", PowerReference::Stimulated);
-    py::class_<Medium>(m, "Medium")
-            .def(py::init<double, double>(), py::arg("relative_permittivity") = 1.0,
-                 py::arg("relative_permeability") = 1.0)
-            .def_readwrite("relative_permittivity", &Medium::relativePermittivity)
-            .def_readwrite("relative_permeability", &Medium::relativePermeability)
-            .def("refractive_index", &Medium::refractive_index).def("impedance", &Medium::impedance);
     py::class_<Isotropic>(m, "Isotropic")
             .def(py::init<Polarization, Complex>(), py::arg("polarization") = Polarization::Vertical,
                  py::arg("amplitude") = Complex(1))
