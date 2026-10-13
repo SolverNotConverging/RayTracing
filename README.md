@@ -1,18 +1,15 @@
 # RayTracing 0.5
 
-Coherent paraxial Gaussian beams, reflected/transmitted branch trees, and explicit
-material volumes. Python owns scene topology and beam transport; C++ provides
-validated geometric intersections and antenna far-field models.
-
-This is a breaking API update. There are no compatibility aliases for the 0.4
-point-receiver solver. Its native numerical routines remain internal regression
-references, not the public propagation API.
+Electromagnetic propagation with antenna-driven multipath impulse responses and
+paraxial Gaussian-beam transport. The main examples use the native C++ point-ray
+solver through `raytracing.point_ray`. The top-level `raytracing` namespace provides
+Gaussian beams, reflected/transmitted branch trees and explicit material volumes.
 
 ## Installation
 
 Requires CPython 3.14+, a C++20 compiler, CMake 4.2+, Ninja, Eigen3,
 nlohmann_json and shared HDF5. NumPy and Matplotlib provide beam algebra and plots.
-The internal native reference/persistence library still links HDF5.
+The native solver saves simulation results in HDF5.
 
 On this development machine, the Git-ignored local shortcut initializes MSVC and
 selects the Git-ignored CMakeUserPresets.json:
@@ -35,15 +32,66 @@ For development, install `.[dev]`; `--no-build-isolation` can be used once the
 build tools are installed in the virtual environment. On Linux/macOS, install
 the corresponding native development libraries and configure CMAKE_PREFIX_PATH.
 
-Keep `python/` unmarked as a **Sources Root** in PyCharm. Adding it to the run
-configuration's `PYTHONPATH` makes the unbuilt source package shadow the installed
-wheel, producing an import error for `_core`. If it is already marked, right-click
-`python/` and choose **Mark Directory as → Unmark as Sources Root**, or disable
-**Add source roots to PYTHONPATH** in the run configuration. Verify that
-`python -c "import raytracing; print(raytracing.__file__)"` points into
-`.venv`'s `site-packages/raytracing` directory.
+PyCharm may mark `python/` as a **Sources Root**. The source package automatically
+loads `_core` and its runtime DLLs from the matching installed wheel in the active
+interpreter's environment. Python edits are used immediately; rebuild and install
+after changing C++ bindings or native code. If no matching native module is
+installed, the import reports how to install it. Verify the native module with
+`python -c "import raytracing; print(raytracing._core.__file__)"`.
 
-## A focused beam through a lossy dielectric slab
+## Main examples: multipath impulse responses
+
+| Example | Scene | Launch rays |
+| --- | --- | --- |
+| [example1.py](example1.py) / [notebook](example1.ipynb) | Mixed-geometry room; CST patch aimed along +x; isotropic receiver | 20,000 |
+| [example2.py](example2.py) / [notebook](example2.ipynb) | Open PEC cylinder and bottom disk; colocated downward CST antennas offset 6 mm from the axis | 200,000 |
+
+Both scenes use explicit PEC surface materials, a 77 GHz carrier, up to eight
+reflections and a 20 m path limit. Run from the repository with its `.venv`:
+
+```powershell
+.\.venv\Scripts\python.exe example1.py
+.\.venv\Scripts\python.exe example2.py
+```
+
+Each script opens an interactive scene. Add `--no-show` to generate results off
+screen. The notebooks display the impulse plots and scene screenshots inline;
+select the repository's `.venv` kernel.
+
+Each example writes these files under `results/example1` or `results/example2`:
+
+- `impulse_response.png`: coherent tap magnitude and wrapped phase versus absolute delay.
+- `impulse_response.csv`: complex impulse taps and their delays.
+- `simulation.h5`: saved simulation snapshot.
+- `scene.png`: antenna, geometry and path visualization.
+
+The point-ray HDF5 reader limits each JSON metadata field to 64 MiB. The 200,000-ray
+cylinder snapshot can exceed that limit because it includes discovery candidates.
+Its impulse CSV remains loadable with `rt.load_impulse_csv(...)`; use that file
+to replot the response without rerunning the solver.
+
+The point-ray API uses `Scene.add(shape, material)` and
+`solve(scene, transmitter, receiver, config)`. To replot a saved response:
+
+```python
+from raytracing import point_ray as rt
+
+result = rt.load_h5("results/example1/simulation.h5")
+figure = rt.plot(result.impulse_response)
+figure.show()
+channel_at_carrier = rt.frequency_response(result.impulse_response)
+```
+
+The taps retain coherent carrier phase. `frequency_response(response, offset_hz)`
+evaluates the envelope response at a frequency offset from that carrier using the
+computed taps. Launch-ray density controls path discovery; refine it when checking
+convergence. Singular receiver caustics have no valid point-ray field contribution.
+
+## Gaussian-beam transport
+
+The following slab snippet uses the top-level Gaussian-beam API. Reproducible
+slab, mirror and refraction validations are maintained in
+`benchmarks/beam_transport.py` rather than duplicate example scripts/notebooks:
 
 ```python
 import raytracing as rt
@@ -79,7 +127,7 @@ move and reshape its focus. Source and launch plane must lie in a homogeneous
 lossless launch region. `PlaneWave(position, direction, polarization, amplitude)`
 is available for interface/slab calculations.
 
-## Geometry and materials
+## Gaussian-beam geometry and materials
 
 | Method | Meaning |
 | --- | --- |
@@ -113,7 +161,7 @@ The time convention is exp(-i omega t). A passive dielectric has
 an additional `+1j * sigma / (omega * EPS0)`. Do not count the same measured loss
 in both epsilon's imaginary part and conductivity. Permeability is positive real.
 
-## Branching, fields and limits
+## Gaussian-beam branching, fields and limits
 
 Every dielectric interface deterministically produces reflected and transmitted
 branches, except when transmission is non-propagating under total internal
@@ -158,7 +206,7 @@ convergence checks. `ApertureSource.from_antenna(...)` samples the existing nati
 frequency must match that sampling frequency. Each aperture covers a forward
 paraxial cone, not a full spherical antenna pattern.
 
-## Model scope
+## Gaussian-beam model scope
 
 - Homogeneous isotropic, nondispersive regions; constant dielectric epsilon and
   permeability, with the conductivity term evaluated at the simulation frequency.
@@ -179,7 +227,7 @@ paraxial cone, not a full spherical antenna pattern.
 - `save_result`/`load_result` use a new explicit JSON schema containing scene,
   configuration and complete branch states. Old HDF5/CSV results are not migrated.
 
-## Inspect Tx/Rx patterns before tracing (VTK/PyVista)
+## Inspect Gaussian-beam Tx/Rx patterns before tracing (VTK/PyVista)
 
 ```python
 receiver_look = rt.GaussianBeam([0, 0, 1.0], [0, 0, -1], 0.04)
@@ -222,7 +270,16 @@ python example2.py --no-show
 Analytical CSV data, convergence plots, pass/fail tolerances and platform metadata
 are saved under `benchmarks/results/beams`. See `benchmarks/BEAMS.md` for the
 reference equations and what each convergence sweep establishes. The native
-CTest suite and older spreading benchmarks remain internal numerical references.
+CTest suite and spreading benchmarks validate the point-ray numerical routines.
 
-The example scripts and notebooks use the new API: example 1 is a lossy slab
-with an enclosing termination boundary; example 2 is a focused reflected beam.
+The current Gaussian-beam validation runs `raytracing.transport.solve`, with
+finite `GaussianBeam` sources and `PlaneWave` interface limits. All 23 analytical
+checks pass; the 28 Python tests also pass. Finite-beam slab transmission has
+maximum relative complex-field error 4.06e-15, repeated spherical/cylindrical
+mirror transport 1.56e-15, and curved refraction 8.53e-14. See the generated
+[validation report](benchmarks/results/beams/REPORT.md) for every tolerance and
+[BEAMS.md](benchmarks/BEAMS.md) for independent theory and model scope.
+
+The native spreading and circular-pipe caustic validations exercise the separate
+point-ray solver. Their results do not validate Gaussian-beam transport. The main
+room and cylinder examples use that point-ray API to produce impulse responses.

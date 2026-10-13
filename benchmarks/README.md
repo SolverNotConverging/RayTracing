@@ -1,12 +1,19 @@
-# Analytical spreading benchmarks
+# Analytical validation: Gaussian beams and point rays
 
-For internal conjugate-point counting, Maslov phase, repeated-focus checks and
-committed analytical validation figures, see [CAUSTICS.md](CAUSTICS.md).
+The current Gaussian-beam solver is validated by [BEAMS.md](BEAMS.md) and
+`python benchmarks/beam_transport.py`. Its 23 checks compare finite complex fields,
+beam widths, Gouy phase, refraction and coherent slabs against independent theory.
+The generated [report](results/beams/REPORT.md) records errors and tolerances.
+
+For point-ray conjugate-point counting, Maslov phase, repeated-focus checks and
+committed analytical validation figures, see [CAUSTICS.md](CAUSTICS.md). These
+point-ray results do not validate the Gaussian-beam solver.
 
 For the **0.5 public beam/volume solver**, see [BEAMS.md](BEAMS.md) and run
 `python benchmarks/beam_transport.py`. Its checked-in results are under
-`results/beams`. The remainder of this document describes the internal native
-point-source spreading reference.
+`results/beams`. The remainder of this document validates the native point-source
+spreading routines used by `raytracing.point_ray` and the main room/cylinder
+impulse-response examples.
 
 `SpreadingBenchmarks.cpp` validates the numerical spreading calculator against
 independent closed-form predictions and writes CSV data. `plot_results.py` creates
@@ -15,7 +22,7 @@ the comparison figures using Matplotlib in the existing `.venv`.
 ## Build and run
 
 Configure `cmake-build-tests` using the platform-specific instructions in the
-[main README](../README.md#tests): MSVC/vcpkg on Windows, Apple Clang/Homebrew
+[main README](../README.md#installation): MSVC/vcpkg on Windows, Apple Clang/Homebrew
 on macOS, or GCC/distribution packages on Linux. Activate `.venv` first.
 
 Windows Developer PowerShell:

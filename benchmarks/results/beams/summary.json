@@ -1,9 +1,15 @@
 {
-  "schema": 1,
+  "schema": 2,
   "solver_version": "0.5.0",
+  "solver_api": "raytracing.transport.solve",
+  "solver_file": "C:\\Users\\Traveler\\PycharmProjects\\RayTracing\\python\\raytracing\\transport.py",
+  "source_types": [
+    "GaussianBeam",
+    "PlaneWave"
+  ],
   "python": "3.14.5 (main, Jun  2 2026, 22:34:49) [MSC v.1944 64 bit (AMD64)]",
   "platform": "Windows-11-10.0.26200-SP0",
-  "utc": "2026-10-10T12:44:43.750149+00:00",
+  "utc": "2026-10-13T14:06:20.329185+00:00",
   "checks": [
     {
       "name": "Gaussian complex field across waist",
@@ -54,6 +60,12 @@
       "passed": true
     },
     {
+      "name": "Finite Gaussian slab coherent transmission",
+      "max_error": 4.054859192686572e-15,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
       "name": "Pruning convergence",
       "max_error": 4.33433849665715e-15,
       "tolerance": 2e-11,
@@ -93,6 +105,30 @@
       "name": "Oblique spherical mirror astigmatism",
       "max_error": 4.440892098500626e-16,
       "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Repeated spherical/cylindrical Gaussian focus complex field",
+      "max_error": 1.5564688637619712e-15,
+      "tolerance": 2e-10,
+      "passed": true
+    },
+    {
+      "name": "Repeated spherical/cylindrical Gaussian focus widths",
+      "max_error": 8.881784197001252e-16,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Gaussian curved refraction complex field",
+      "max_error": 8.527518374540789e-14,
+      "tolerance": 2e-11,
+      "passed": true
+    },
+    {
+      "name": "Gaussian curved refraction width",
+      "max_error": 2.7755575615628914e-17,
+      "tolerance": 2e-12,
       "passed": true
     },
     {

@@ -27,6 +27,8 @@ def write_csv(path, rows):
 
 
 def run(destination):
+    if rt.solve.__module__ != 'raytracing.transport':
+        raise RuntimeError('This validation requires the current Gaussian-beam transport API')
     destination.mkdir(parents=True,exist_ok=True)
     checks=[]
     def check(name,error,tolerance):
@@ -86,6 +88,30 @@ def run(destination):
         slab_curves.append((str(epsilon),[2,4,6,8,12,16,24,32],errors))
     write_csv(destination/'slab_convergence.csv',slab_rows)
     check('Slab branch energy accounting',max(r['power_balance_error'] for r in slab_rows),2e-12)
+
+    # Finite Gaussian Fabry-Perot transmission: each round-trip order has
+    # a different ABCD propagation length as well as a different carrier phase.
+    # Sum 40 analytical orders independently of the solver branch tree.
+    finite_slab=[]
+    scene=rt.Scene()
+    scene.add_volume(rt.Box([0,0,.5+thickness/2],[20,20,thickness/2]),rt.Material.dielectric(4))
+    finite=rt.solve(scene,rt.GaussianBeam([0,0,0],[0,0,1],w),
+                    rt.SolverConfig(frequency_hz=f,max_distance=4,max_interactions=32,min_power_fraction=0))
+    for radius_sample in (0,.03,.08,.15):
+        expected=0j
+        q0=-1j*zr
+        for order in range(40):
+            interior=(2*order+1)*thickness
+            q=q0+1-thickness+interior/2
+            expected += (8/9)*(1/9)**order*q0/q*np.exp(1j*k*(1-thickness+2*interior)) * np.exp(.5j*k*radius_sample**2/q)
+        actual=finite.field_at([radius_sample,0,1])[0]
+        # The independent series above is normalized to the incident waist field.
+        expected *= e0
+        finite_slab.append(dict(radius_m=radius_sample,actual_real=actual.real,actual_imag=actual.imag,
+                                theory_real=expected.real,theory_imag=expected.imag,
+                                relative_error=abs(actual-expected)/abs(expected)))
+    write_csv(destination/'gaussian_slab.csv',finite_slab)
+    check('Finite Gaussian slab coherent transmission',max(row['relative_error'] for row in finite_slab),2e-11)
 
     # Separate pruning convergence from interaction-depth convergence.
     scene=rt.Scene(); scene.add_volume(rt.Box([0,0,.5065],[2,2,.0065]),rt.Material.dielectric(4))
@@ -158,6 +184,78 @@ def run(destination):
     write_csv(destination/'astigmatic_mirror.csv',rows)
     check('Oblique spherical mirror astigmatism',max(r['max_error'] for r in rows),2e-11)
 
+    # Finite Gaussian beams through repeated spherical/cylindrical foci.
+    # Independent scalar ABCD recurrence in laboratory x/y coordinates:
+    # free propagation q -> q+L, mirror 1/q -> 1/q-2/R in
+    # each curved plane. A cylinder has no power along its axis (y).
+    repeated=[]
+    for shape in ('sphere','cylinder'):
+        mirror_scene=rt.Scene()
+        surface=(rt.Sphere([0,0,0],radius) if shape=='sphere' else
+                 rt.Cylinder([0,0,0],[0,1,0],radius,1000,capped=False))
+        mirror_scene.add_surface(surface,rt.Material.pec())
+        simulation=rt.solve(mirror_scene,rt.GaussianBeam([0,0,0],[0,0,1],w),
+                            rt.SolverConfig(frequency_hz=f,max_distance=30.5,max_interactions=8))
+        outgoing=sorted((s for s in simulation.segments if s.state.history),
+                        key=lambda s: len(s.state.history))
+        if len(outgoing)!=8:
+            raise RuntimeError(f'{shape}: expected eight reflected Gaussian segments')
+        q=np.full(2,-1j*zr); amplitude=complex(e0)
+        powers=np.array([2/radius,2/radius if shape=='sphere' else 0])
+        for order,segment in enumerate(outgoing,1):
+            length=radius if order==1 else 2*radius
+            amplitude *= -np.exp(1j*k*length)/np.prod(np.sqrt(1+length/q))
+            q=1/(1/(q+length)-powers)
+            for distance in (0,.25):
+                # Query a traced segment's finite field, including its Gaussian
+                # transverse envelope, rather than a native point-ray field.
+                qp=q+distance
+                expected=amplitude*np.exp(1j*k*distance)/np.prod(np.sqrt(1+distance/q))
+                point=segment.state.position+distance*segment.state.direction+np.array([.02,.01,0])
+                expected *= np.exp(.5j*k*(.02**2/qp[0]+.01**2/qp[1]))
+                actual=segment.field_at(point)[0]
+                # Eigenvalue sorting avoids the solver's transverse-frame choice.
+                actual_width=np.sort(segment.radii(distance))
+                theory_width=np.sort(np.sqrt(2/(k*(1/qp).imag)))
+                repeated.append(dict(shape=shape,reflections=order,distance_after_mirror_m=distance,
+                                     actual_real=actual.real,actual_imag=actual.imag,
+                                     theory_real=expected.real,theory_imag=expected.imag,
+                                     relative_field_error=abs(actual-expected)/abs(expected),
+                                     width_error=max(abs(actual_width-theory_width))))
+    write_csv(destination/'repeated_gaussian_mirrors.csv',repeated)
+    check('Repeated spherical/cylindrical Gaussian focus complex field',
+          max(row['relative_field_error'] for row in repeated),2e-10)
+    check('Repeated spherical/cylindrical Gaussian focus widths',
+          max(row['width_error'] for row in repeated),2e-11)
+
+    # Convex spherical dielectric entry: scalar refraction ABCD law.
+    # R>0 has its center downstream; q_out^-1=(n1/n2)/q_in
+    # -(n2-n1)/(n2*R). Test a finite beam, not a plane wave.
+    refraction=[]
+    for index in (1.25,1.5,2.0):
+        dielectric_scene=rt.Scene()
+        dielectric_scene.add_volume(rt.Sphere([0,0,0],radius),rt.Material.dielectric(index**2))
+        simulation=rt.solve(dielectric_scene,rt.GaussianBeam([0,0,-radius-.3],[0,0,1],w),
+                            rt.SolverConfig(frequency_hz=f,max_distance=.8,max_interactions=1))
+        transmitted=next(s for s in simulation.segments
+                         if s.state.history and s.state.history[-1][1]=='transmit')
+        qi=.3-1j*zr
+        qo=1/((1/index)/qi-(index-1)/(index*radius))
+        entry=e0*(-1j*zr)/qi*np.exp(1j*k*.3)*2/(1+index)
+        for distance in np.linspace(0,.45,20):
+            expected=entry*qo/(qo+distance)*np.exp(1j*k*index*distance)
+            actual=transmitted.field_at(transmitted.state.position+distance*np.array([0,0,1]))[0]
+            expected_width=np.sqrt(2/(k*index*(1/(qo+distance)).imag))
+            refraction.append(dict(refractive_index=index,distance_m=distance,
+                                   actual_real=actual.real,actual_imag=actual.imag,
+                                   theory_real=expected.real,theory_imag=expected.imag,
+                                   width_m=transmitted.radii(distance)[0],theory_width_m=expected_width,
+                                   relative_field_error=abs(actual-expected)/abs(expected),
+                                   width_error=max(abs(transmitted.radii(distance)-expected_width))))
+    write_csv(destination/'gaussian_curved_refraction.csv',refraction)
+    check('Gaussian curved refraction complex field',max(row['relative_field_error'] for row in refraction),2e-11)
+    check('Gaussian curved refraction width',max(row['width_error'] for row in refraction),2e-12)
+
     # Analytical normal-incidence absorbing-medium attenuation, independent of
     # interface amplitudes. Launch a plane wave inside the volume.
     eps=4+.02j; n=np.sqrt(eps)
@@ -198,12 +296,15 @@ def run(destination):
     axes[2].set(xlabel='Beamlets per transverse axis',ylabel='Relative complex field error',title='Gaussian beamlet convergence')
     for ax in axes: ax.grid(True,which='both',alpha=.3)
     fig.tight_layout(); fig.savefig(destination/'convergence.png',dpi=180); plt.close(fig)
-    summary=dict(schema=1,solver_version=rt.__version__,python=sys.version,platform=platform.platform(),
+    summary=dict(schema=2,solver_version=rt.__version__,solver_api='raytracing.transport.solve',
+                 solver_file=rt.solve.__code__.co_filename,source_types=['GaussianBeam','PlaneWave'],
+                 python=sys.version,platform=platform.platform(),
                  utc=datetime.now(timezone.utc).isoformat(),checks=checks,passed=all(x['passed'] for x in checks),
                  assumptions=['paraxial Gaussian beams','homogeneous isotropic regions','weak-loss transport',
                               'opaque PEC/metal','no aperture clipping or edge diffraction'])
     (destination/'summary.json').write_text(json.dumps(summary,indent=2),encoding='utf-8')
-    lines=['# Beam transport analytical results','',f'Solver {rt.__version__}; all checks passed: {summary["passed"]}.','',
+    lines=['# Beam transport analytical results','',f'Solver {rt.__version__}; all checks passed: {summary["passed"]}.',
+           '', 'API: `raytracing.transport.solve`; finite Gaussian beams and plane-wave interface limits.', '',
            '| Check | Maximum error | Limit | Pass |','| --- | ---: | ---: | --- |']
     lines += [f'| {x["name"]} | {x["max_error"]:.4g} | {x["tolerance"]:.4g} | {x["passed"]} |' for x in checks]
     (destination/'REPORT.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
