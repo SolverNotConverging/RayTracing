@@ -16,6 +16,16 @@ target_compile_definitions(_core PRIVATE RAYTRACING_VERSION="${PROJECT_VERSION}"
 
 install(TARGETS _core RUNTIME_DEPENDENCY_SET raytracing_runtime
         LIBRARY DESTINATION raytracing RUNTIME DESTINATION raytracing)
+# Installation may strip the module, invalidating the linker's ad-hoc signature.
+# Sign the final installed bytes so macOS arm64 can load the extension.
+if (APPLE)
+    install(CODE [[
+        execute_process(
+                COMMAND /usr/bin/codesign --force --sign -
+                        "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/raytracing/$<TARGET_FILE_NAME:_core>"
+                COMMAND_ERROR_IS_FATAL ANY)
+    ]])
+endif ()
 install(FILES "${PROJECT_SOURCE_DIR}/antenna_patterns/simple_patch.ffs"
         DESTINATION raytracing/data)
 
