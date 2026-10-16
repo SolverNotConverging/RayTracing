@@ -2,22 +2,15 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/complex.h>
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
-#include <RayTracing/Constants.hpp>
-#include <RayTracing/Solver.hpp>
+#include <raytracing/raytracing.hpp>
 
 namespace py = pybind11;
+using namespace py::literals;
 
-void bind_geometry(py::module_ &m);
-
-void bind_materials(py::module_ &m);
-
-void bind_antennas(py::module_ &m);
-
-void bind_solver(py::module_ &m);
-
-void bind_results(py::module_ &m);
-
-void bind_beams(py::module_ &m);
+void bind_common(py::module_ &m);
+void bind_point_ray(py::module_ &m);
+void bind_beam(py::module_ &m);

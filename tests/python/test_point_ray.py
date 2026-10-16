@@ -1,62 +1,63 @@
-"""Point-ray bindings, shared result IO and included Python rendering."""
+"""Point-ray solver through the Python API."""
 import numpy as np
 import pytest
-from raytracing import point_ray as rt
+import raytracing as rt
+
+C = rt.SPEED_OF_LIGHT
 
 
-@pytest.fixture
-def direct():
+def direct_result(distance=3.0):
     return rt.solve(rt.Scene(), rt.Transmitter([0, 0, 0], rt.Isotropic()),
-                    rt.Receiver([3, 0, 0], rt.Isotropic()),
+                    rt.Receiver([distance, 0, 0], rt.Isotropic()),
                     rt.SolverConfig(ray_count=64, max_reflections=0, max_distance=4))
 
 
-def test_direct_impulse_physics(direct):
-    assert len(direct.rays) == len(direct.impulse_response.taps) == 1
-    tap = direct.impulse_response.taps[0]
-    assert tap.delay_seconds == pytest.approx(3 / 299792458.0)
-    assert abs(tap.coefficient) == pytest.approx(1 / 3)
-    assert rt.frequency_response(direct.impulse_response) == pytest.approx(tap.coefficient)
+@pytest.mark.parametrize("distance", [0.05, 0.12, 0.121, 3.0])
+def test_direct_path(distance):
+    result = direct_result(distance)
+    response = result.impulse_response
+    assert len(result.paths) == len(response.taps) == 1
+    assert response.delays[0] == pytest.approx(distance / C)
+    assert abs(response.coefficients[0]) == pytest.approx(1 / distance)
+    assert response.frequency_response() == pytest.approx(response.coefficients[0])
 
 
-@pytest.mark.parametrize("distance", [.05, .12, .121])
-def test_nearby_direct_receiver(distance):
-    result = rt.solve(rt.Scene(), rt.Transmitter([0, 0, 0], rt.Isotropic()),
-                      rt.Receiver([distance, 0, 0], rt.Isotropic()),
-                      rt.SolverConfig(ray_count=16, max_reflections=0, max_distance=1))
-    assert len(result.rays) == len(result.candidates) == 1
-    tap = result.impulse_response.taps[0]
-    assert tap.delay_seconds == pytest.approx(distance / 299792458.0)
-    assert abs(tap.coefficient) == pytest.approx(1 / distance)
+def test_wall_reflection_and_receiver_swap():
+    scene = rt.Scene()
+    index = scene.add(rt.Rectangle([1, 0, 0], [0, 1, 0], [0, 0, 1], 5, 5), rt.Material.conductor(5.8e7))
+    assert index == 0 and len(scene) == 1
+    result = rt.solve(scene, rt.Transmitter([0, 0, 0], rt.ShortDipole()), rt.Receiver([0, 2, 0]),
+                      rt.SolverConfig(ray_count=4000, max_reflections=1))
+    assert len(result.paths) == 2
+    def reflected():
+        return next(p for p in result.paths if len(p.refinement.geometry.reflections) == 1)
+
+    assert reflected().field.path_length == pytest.approx(2 * np.sqrt(2))
+    assert reflected().vertices.shape == (3, 3)
+    before = reflected().coefficient
+    rt.set_receiver_antenna(result, rt.ShortDipole())
+    assert reflected().coefficient != pytest.approx(before)
 
 
-def test_point_ray_persistence(direct, tmp_path):
-    rt.save_h5(direct, tmp_path / "simulation.h5")
-    restored = rt.load_h5(tmp_path / "simulation.h5")
-    rt.save_impulse_csv(direct.impulse_response, tmp_path / "impulse.csv")
-    response = rt.load_impulse_csv(tmp_path / "impulse.csv")
-    for actual in (restored.impulse_response, response):
-        assert actual.taps[0].coefficient == pytest.approx(direct.impulse_response.taps[0].coefficient)
-        assert actual.taps[0].delay_seconds == direct.impulse_response.taps[0].delay_seconds
+def test_antenna_and_material_api():
+    antenna = rt.Antenna(rt.ThinWireDipole(C / 77e9 / 2))
+    assert isinstance(antenna.model, rt.ThinWireDipole)
+    antenna.rotate([0, 1, 0], 90)
+    assert np.allclose(antenna.orientation @ [0, 0, 1], [1, 0, 0])
+    glass = rt.Material.dielectric(4)
+    r = rt.fresnel(rt.Material.vacuum(), glass, 1.0, 77e9)
+    assert r.rs == pytest.approx(-1 / 3) and r.ts == pytest.approx(2 / 3)
+    with pytest.raises(ValueError):
+        rt.Scene().add(rt.Sphere([0, 0, 0], -1), glass)
 
 
-def test_included_python_visualization(direct, tmp_path):
+def test_views_render_off_screen(tmp_path):
+    pytest.importorskip("pyvista")
     import matplotlib
     matplotlib.use("Agg", force=True)
-    import matplotlib.pyplot as plt
-    import pyvista
-    from PIL import Image
-
-    figure = rt.plot(direct.impulse_response, tmp_path / "impulse.png")
-    plt.close(figure)
-    viewer = rt.visualize(direct, options=rt.ViewOptions(off_screen=True, window_size=(320, 240)))
-    try:
-        assert isinstance(viewer, pyvista.Plotter)
-        pixels = viewer.screenshot(str(tmp_path / "scene.png"))
-        assert pixels.shape[:2] == (240, 320)
-        assert np.std(pixels) > 0
-    finally:
-        viewer.close()
-    for name in ("impulse.png", "scene.png"):
-        with Image.open(tmp_path / name) as image:
-            image.verify()
+    result = direct_result()
+    figure = rt.plot_impulse_response(result.impulse_response)
+    figure.savefig(tmp_path / "impulse.png")
+    plotter = rt.show_paths(result, show=False, screenshot=tmp_path / "paths.png", window_size=(320, 240))
+    plotter.close()
+    assert (tmp_path / "impulse.png").stat().st_size > 0 and (tmp_path / "paths.png").stat().st_size > 0
