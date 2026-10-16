@@ -1,7 +1,7 @@
-#include "FieldReconstruction.hpp"
-#include "ImpulseResponse.hpp"
-#include "Constants.hpp"
-#include "Tracing.hpp"
+#include <RayTracing/FieldReconstruction.hpp>
+#include <RayTracing/ImpulseResponse.hpp>
+#include <RayTracing/Constants.hpp>
+#include <RayTracing/Tracing.hpp>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

@@ -14,7 +14,7 @@ def test_source_root_uses_installed_native_extension():
         [sys.executable, "-c", "import raytracing as rt; "
          "from pathlib import Path; "
          "assert Path(rt.__file__).parent == Path(" + repr(str(SOURCE / "raytracing")) + "); "
-         "assert rt.example_pattern().is_file(); rt.Scene()"],
+         "rt.Scene()"],
         env=env, capture_output=True, text=True,
     )
     assert result.returncode == 0, result.stdout + result.stderr

@@ -297,7 +297,7 @@ def run(destination):
     for ax in axes: ax.grid(True,which='both',alpha=.3)
     fig.tight_layout(); fig.savefig(destination/'convergence.png',dpi=180); plt.close(fig)
     summary=dict(schema=2,solver_version=rt.__version__,solver_api='raytracing.transport.solve',
-                 solver_file=rt.solve.__code__.co_filename,source_types=['GaussianBeam','PlaneWave'],
+                 solver_file=rt.solve.__code__.co_filename,numerical_implementation='rt::beam (C++ RayTracing::Core)',source_types=['GaussianBeam','PlaneWave'],
                  python=sys.version,platform=platform.platform(),
                  utc=datetime.now(timezone.utc).isoformat(),checks=checks,passed=all(x['passed'] for x in checks),
                  assumptions=['paraxial Gaussian beams','homogeneous isotropic regions','weak-loss transport',

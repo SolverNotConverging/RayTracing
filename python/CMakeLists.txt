@@ -10,12 +10,12 @@ file(TO_CMAKE_PATH "${_pybind11_dir}" _pybind11_dir)
 find_package(pybind11 3.0 CONFIG REQUIRED HINTS "${_pybind11_dir}")
 pybind11_add_module(_core MODULE NO_EXTRAS
         bindings/module.cpp bindings/geometry.cpp bindings/materials.cpp bindings/antennas.cpp
-        bindings/solver.cpp bindings/results.cpp)
+        bindings/solver.cpp bindings/results.cpp bindings/beams.cpp)
 target_link_libraries(_core PRIVATE RayTracing::IO)
 target_compile_definitions(_core PRIVATE RAYTRACING_VERSION="${PROJECT_VERSION}")
 
 install(TARGETS _core RUNTIME_DEPENDENCY_SET raytracing_runtime
-        LIBRARY DESTINATION raytracing RUNTIME DESTINATION raytracing)
+        LIBRARY DESTINATION raytracing COMPONENT Python RUNTIME DESTINATION raytracing COMPONENT Python)
 # Installation may strip the module, invalidating the linker's ad-hoc signature.
 # Sign the final installed bytes so macOS arm64 can load the extension.
 if (APPLE)
@@ -24,10 +24,8 @@ if (APPLE)
                 COMMAND /usr/bin/codesign --force --sign -
                         "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/raytracing/$<TARGET_FILE_NAME:_core>"
                 COMMAND_ERROR_IS_FATAL ANY)
-    ]])
+    ]] COMPONENT Python)
 endif ()
-install(FILES "${PROJECT_SOURCE_DIR}/antenna_patterns/simple_patch.ffs"
-        DESTINATION raytracing/data)
 
 # Ship the numerical/persistence runtime. Rendering dependencies are Python packages.
 if (WIN32)
@@ -35,10 +33,10 @@ if (WIN32)
             DIRECTORIES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin"
             PRE_EXCLUDE_REGEXES "api-ms-.*" "ext-ms-.*" "python[0-9]+(_d)?\\.dll"
             POST_EXCLUDE_REGEXES ".*[/\\\\][Ww][Ii][Nn][Dd][Oo][Ww][Ss][/\\\\].*"
-            RUNTIME DESTINATION raytracing/.libs)
+            RUNTIME DESTINATION raytracing/.libs COMPONENT Python)
     # Include the license notices for the native dependencies supplied by vcpkg.
     foreach (_dependency IN ITEMS eigen3 nlohmann-json hdf5 zlib)
         install(FILES "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/${_dependency}/copyright"
-                DESTINATION "raytracing/licenses/${_dependency}")
+                DESTINATION "raytracing/licenses/${_dependency}" COMPONENT Python)
     endforeach ()
 endif ()

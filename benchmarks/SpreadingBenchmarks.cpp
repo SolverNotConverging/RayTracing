@@ -1,6 +1,6 @@
-#include "Spreading.hpp"
-#include "FieldReconstruction.hpp"
-#include "Constants.hpp"
+#include <RayTracing/Spreading.hpp>
+#include <RayTracing/FieldReconstruction.hpp>
+#include <RayTracing/Constants.hpp>
 
 #include <algorithm>
 #include <cmath>

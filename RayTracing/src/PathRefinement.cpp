@@ -1,4 +1,4 @@
-#include "PathRefinement.hpp"
+#include <RayTracing/PathRefinement.hpp>
 
 #include <Eigen/QR>
 #include <algorithm>

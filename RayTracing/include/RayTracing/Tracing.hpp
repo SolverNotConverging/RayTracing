@@ -57,7 +57,9 @@ struct TraceResult {
 
 // Trace one ray. After the last permitted reflection, still check the next
 // segment for reception. Escaping rays are drawn out to maxDistance_.
-// When launched inside/on the Rx sphere, reception starts after leaving it.
+// Without a callback, launches inside/on the Rx sphere must first leave it.
+// With a callback, distinct endpoints inside the sphere also report a direct
+// candidate; colocated endpoints still require a reflected return.
 // With onReception, report each segment intersecting the capture sphere and
 // continue tracing to the physical termination. The sphere is then a candidate
 // search region, not an absorbing object. Each callback receives a snapshot

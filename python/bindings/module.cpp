@@ -12,4 +12,5 @@ PYBIND11_MODULE(_core, m) {
     bind_antennas(m);
     bind_results(m);
     bind_solver(m);
+    bind_beams(m);
 }

@@ -1,4 +1,4 @@
-#include "ImpulseResponse.hpp"
+#include <RayTracing/ImpulseResponse.hpp>
 #include <algorithm>
 #include <cmath>
 #include <numeric>

@@ -1,4 +1,6 @@
+#ifdef RAYTRACING_TEST_IO
 #include <RayTracing/ResultIO.hpp>
+#endif
 #include <RayTracing/Solver.hpp>
 #include <RayTracing/Constants.hpp>
 #include <fstream>
@@ -175,6 +177,47 @@ int main() try {
         "Solver did not return unique refined direct ray");
   near(std::abs(direct.impulseResponse.taps_[0].coefficient_), 1.0 / 3,
        "API direct field gain incorrect");
+  check(direct.candidates.size() == 1, "Direct sequence was refined repeatedly");
+  for (double distance : {0.05, 0.12, 0.121}) {
+    const Receiver nearby{{distance, 0, 0}, Isotropic{}};
+    const auto result = solve(scene, tx, nearby, cfg);
+    check(result.rays.size() == 1 && result.rays[0].field,
+          "Nearby receiver lost its direct path");
+    near(std::abs(result.impulseResponse.taps_[0].coefficient_), 1.0 / distance,
+         "Nearby direct gain incorrect", 1e-7);
+    near(result.impulseResponse.taps_[0].delaySeconds_, distance / C,
+         "Nearby direct delay incorrect", 1e-15);
+    Scene blocked;
+    blocked.add(Disk{{distance / 2, 0, 0}, Vec3::UnitX(), 1}, Material::pec());
+    check(solve(blocked, tx, nearby, cfg).rays.empty(),
+          "Nearby receiver bypassed a blocking surface");
+  }
+  {
+    Scene wall;
+    wall.add(Rectangle{Vec3::Zero(), Vec3::UnitX(), Vec3::UnitY(), 10, 10},
+             Material::pec());
+    auto reflectedConfig = cfg;
+    reflectedConfig.rayCount = 512;
+    reflectedConfig.maxReflections = 1;
+    reflectedConfig.receptionRadius = 0.5;
+    const auto result = solve(wall, {{0, 0, 1}, Isotropic{}},
+                              {{1, 0, 1}, Isotropic{}}, reflectedConfig);
+    check(result.rays.size() == 2, "Planar reuse lost a direct or reflected path");
+    std::size_t converged = 0;
+    for (const auto &candidate : result.candidates)
+      if (candidate.refinement.status_ == RefinementStatus::Converged)
+        ++converged;
+    check(converged == 2, "Planar reflection was refined repeatedly");
+    for (const auto &ray : result.rays) {
+      const auto &candidate = result.candidates.at(ray.candidateIndex).refinement;
+      near(candidate.geometry_.receiver_->pathDistance_,
+           ray.refinement.geometry_.receiver_->pathDistance_,
+           "Candidate geometry was lost when moving refinement storage");
+      if (!ray.refinement.geometry_.reflections_.empty())
+        near(ray.refinement.geometry_.receiver_->pathDistance_, std::sqrt(5.),
+             "Planar reflected path has incorrect length");
+    }
+  }
   tx.antenna = Isotropic{Polarization::Vertical, 2};
   const auto scaled = solve(scene, tx, rx, cfg);
   near(scaled.impulseResponse.taps_[0].coefficient_,
@@ -221,6 +264,7 @@ int main() try {
   check(noReturn.rays.empty() && noReturn.impulseResponse.taps_.empty(),
         "Empty monostatic scene generated a direct return");
 
+#ifdef RAYTRACING_TEST_IO
   // Embed the real CST pattern at both ends, plus every geometry variant.
   const auto copper = Material::conductor("copper", 5.8e7);
   const auto glass = Material::lossy("glass", 6.0, 0.01, 1e-3, 1.0);
@@ -282,11 +326,30 @@ int main() try {
   save_h5(empty, folder / "empty.h5");
   check(load_h5(folder / "empty.h5").rays.empty(),
         "Empty result HDF5 round trip failed");
+  {
+    // About 70 MiB of JSON: this exceeded the legacy metadata ceiling.
+    auto large = direct;
+    const Vec3 vertex(1.2345678901234567, 2.345678901234567, 3.456789012345678);
+    large.candidates[0].coarseVertices.assign(1200000, vertex);
+    const auto largePath = folder / "large-candidates.h5";
+    save_h5(large, largePath);
+    check(std::filesystem::file_size(largePath) > 64 * 1024 * 1024,
+          "Large-record regression did not exceed the former size limit");
+    const auto restored = load_h5(largePath);
+    check(restored.candidates[0].coarseVertices.size() == 1200000 &&
+              restored.candidates[0].coarseVertices.back() == vertex,
+          "Large candidate records did not round trip");
+    near(restored.impulseResponse.taps_[0].coefficient_,
+         direct.impulseResponse.taps_[0].coefficient_,
+         "Large result changed the impulse response");
+    std::filesystem::remove(largePath);
+  }
   save_impulse_csv(empty.impulseResponse, folder / "empty.csv");
   check(load_impulse_csv(folder / "empty.csv").taps_.empty(),
         "Empty response CSV failed");
-  std::cout << "Antenna models, CST/HFSS imports, solver API and HDF5/CSV "
-               "round trips passed\n";
+#endif
+  std::cout << "Antenna models, CST/HFSS imports, solver API "
+               "passed\n";
   return 0;
 } catch (const std::exception &e) {
   std::cerr << e.what() << '\n';

@@ -19,3 +19,5 @@ void bind_antennas(py::module_ &m);
 void bind_solver(py::module_ &m);
 
 void bind_results(py::module_ &m);
+
+void bind_beams(py::module_ &m);

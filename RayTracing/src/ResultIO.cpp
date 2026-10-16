@@ -1,5 +1,5 @@
-#include "ResultIO.hpp"
-#include "Constants.hpp"
+#include <RayTracing/ResultIO.hpp>
+#include <RayTracing/Constants.hpp>
 #include <algorithm>
 #include <fstream>
 #include <hdf5.h>
@@ -193,8 +193,30 @@ namespace rt {
                  H5Gclose);
         }
 
+        bool path_records(const std::string &name) {
+            return name == "/paths/records" || name == "/candidates/records";
+        }
+
+        constexpr std::size_t metadataLimit = 64 * 1024 * 1024;
+        constexpr hsize_t textChunkSize = 1024 * 1024;
+
         void write_text(hid_t file, const std::string &name, const json &value) {
             const auto text = value.dump();
+            if (!path_records(name) && text.size() > metadataLimit)
+                throw std::runtime_error("HDF5 metadata too large");
+            // Large path collections are data, not fixed-size scalar metadata.
+            // Keep small records in the legacy representation for compatibility.
+            if (path_records(name) && text.size() > textChunkSize) {
+                const hsize_t size = text.size();
+                H5 space(H5Screate_simple(1, &size, nullptr), H5Sclose);
+                H5 properties(H5Pcreate(H5P_DATASET_CREATE), H5Pclose);
+                ensure(H5Pset_chunk(properties.id, 1, &textChunkSize));
+                H5 data(H5Dcreate2(file, name.c_str(), H5T_STD_U8LE, space.id,
+                                   H5P_DEFAULT, properties.id, H5P_DEFAULT), H5Dclose);
+                ensure(H5Dwrite(data.id, H5T_NATIVE_UCHAR, H5S_ALL, H5S_ALL,
+                                H5P_DEFAULT, text.data()));
+                return;
+            }
             H5 type(H5Tcopy(H5T_C_S1), H5Tclose);
             ensure(H5Tset_size(type.id, std::max<std::size_t>(1, text.size())));
             ensure(H5Tset_cset(type.id, H5T_CSET_UTF8));
@@ -210,11 +232,25 @@ namespace rt {
             H5 data(H5Dopen2(file, name.c_str(), H5P_DEFAULT), H5Dclose);
             H5 type(H5Dget_type(data.id), H5Tclose);
             H5 space(H5Dget_space(data.id), H5Sclose);
+            if (path_records(name) && H5Tequal(type.id, H5T_STD_U8LE) > 0 &&
+                H5Sget_simple_extent_ndims(space.id) == 1) {
+                hsize_t size = 0;
+                ensure(H5Sget_simple_extent_dims(space.id, &size, nullptr));
+                std::string text;
+                if (size > text.max_size() || size > H5Dget_storage_size(data.id))
+                    throw std::runtime_error("Invalid HDF5 path record size");
+                text.resize(static_cast<std::size_t>(size));
+                ensure(H5Dread(data.id, H5T_NATIVE_UCHAR, H5S_ALL, H5S_ALL,
+                               H5P_DEFAULT, text.data()));
+                return json::parse(text);
+            }
             if (H5Tget_class(type.id) != H5T_STRING || H5Tis_variable_str(type.id) > 0 ||
                 H5Sget_simple_extent_ndims(space.id) != 0)
                 throw std::runtime_error("Unexpected HDF5 metadata type");
             const std::size_t n = H5Tget_size(type.id);
-            if (n > 64 * 1024 * 1024)
+            // Legacy files may also contain large scalar path records.
+            if ((!path_records(name) && n > metadataLimit) ||
+                (path_records(name) && n > H5Dget_storage_size(data.id)))
                 throw std::runtime_error("HDF5 metadata too large");
             std::string text(n, '\0');
             ensure(H5Dread(data.id, type.id, H5S_ALL, H5S_ALL, H5P_DEFAULT, text.data()));

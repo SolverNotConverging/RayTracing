@@ -1,8 +1,8 @@
-"""Explicit surface/volume topology and deterministic overlap resolution."""
+"""Scene data adapters; region and intersection decisions are shared C++ code."""
 from dataclasses import dataclass
-import math
 import numpy as np
 from . import _core
+from ._beam_adapter import native, record, values
 from .materials import Material, VACUUM
 
 Rectangle, Disk, Sphere = _core.Rectangle, _core.Disk, _core.Sphere
@@ -17,10 +17,7 @@ def vector(value):
 
 
 def unit(value):
-    a = vector(value)
-    if np.linalg.norm(a) == 0:
-        raise ValueError("Direction must be nonzero")
-    return a / np.linalg.norm(a)
+    return native.unit(vector(value))
 
 
 @dataclass
@@ -32,10 +29,20 @@ class Box:
     def __post_init__(self):
         self.center, self.half_lengths = vector(self.center), vector(self.half_lengths)
         self.axes = np.eye(3) if self.axes is None else np.array(self.axes, dtype=float, copy=True)
-        if (self.half_lengths <= 0).any() or self.axes.shape != (3, 3):
-            raise ValueError("Box half lengths must be positive; axes must be 3x3")
-        if not np.allclose(self.axes.T @ self.axes, np.eye(3), atol=1e-12, rtol=0) or np.linalg.det(self.axes) < 0:
-            raise ValueError("Box axes must be a right-handed orthonormal frame")
+        if self.axes.shape != (3, 3):
+            raise ValueError("Box axes must be 3x3")
+        self._native().validate()
+
+    def _native(self):
+        return native.Box(self.center, self.half_lengths, self.axes)
+
+
+def _shape_native(shape):
+    return shape._native() if isinstance(shape, Box) else shape
+
+
+def _shape_python(shape):
+    return Box(shape.center, shape.half_lengths, shape.axes) if isinstance(shape, native.Box) else shape
 
 
 def copy_shape(s):
@@ -49,54 +56,19 @@ def copy_shape(s):
 
 
 def faces(s):
-    if not isinstance(s, Box): return [s]
-    result = []
-    for i in range(3):
-        j, k = (i+1)%3, (i+2)%3
-        for sign in (-1, 1):
-            result.append(Rectangle(s.center + sign*s.half_lengths[i]*s.axes[:, i],
-                                    s.axes[:, j], sign*s.axes[:, k], s.half_lengths[j], s.half_lengths[k]))
-    return result
+    return native.faces(_shape_native(s))
 
 
 def contains(s, p):
-    if isinstance(s, Box): return bool((np.abs(s.axes.T @ (p-s.center)) < s.half_lengths).all())
-    if isinstance(s, Sphere): return np.linalg.norm(p-s.center) < s.radius
-    if isinstance(s, Cylinder):
-        v = p-s.center
-        a = np.dot(v, s.axis)
-        return abs(a) < s.half_length and np.linalg.norm(v-a*s.axis) < s.radius
-    return False
+    return native.contains(_shape_native(s), vector(p))
 
 
 def edge_distance(s, p):
-    if isinstance(s, Rectangle):
-        v = p-s.center
-        return min(s.half_width-abs(v@s.u), s.half_height-abs(v@s.v))
-    if isinstance(s, Disk): return s.radius-np.linalg.norm(p-s.center)
-    if isinstance(s, Cylinder):
-        v = p-s.center
-        axial = v@s.axis
-        radial = np.linalg.norm(v-axial*s.axis)
-        return math.hypot(s.half_length-abs(axial), s.radius-radial)
-    if isinstance(s, Triangle):
-        return min(np.linalg.norm(np.cross(b-a, p-a))/np.linalg.norm(b-a)
-                   for a,b in ((s.a,s.b), (s.b,s.c), (s.c,s.a)))
-    return math.inf
+    return native.edge_distance(s, vector(p))
 
 
 def curvature(s, p, normal):
-    """Derivative of the oriented unit normal with respect to position."""
-    if isinstance(s, Sphere):
-        outward = (p-s.center)/s.radius
-        return np.sign(outward@normal)*(np.eye(3)-np.outer(outward,outward))/s.radius
-    if isinstance(s, Cylinder):
-        v = p-s.center
-        radial = v-(v@s.axis)*s.axis
-        if np.linalg.norm(radial) > 0 and abs(normal@s.axis) < .5:
-            outward = radial/np.linalg.norm(radial)
-            return np.sign(outward@normal)*(np.eye(3)-np.outer(s.axis,s.axis)-np.outer(outward,outward))/s.radius
-    return np.zeros((3,3))
+    return native.curvature(s, vector(p), vector(normal))
 
 
 @dataclass(frozen=True)
@@ -118,15 +90,31 @@ class Event:
     after: int
     kind: str
 
+    def _native(self): return record(self, native.Event)
+
+    @classmethod
+    def _from_native(cls, value): return cls(**values(value, cls))
+
 
 class Scene:
     def __init__(self, background=VACUUM, *, tolerance=1e-8):
-        if not isinstance(background, Material) or background.kind != "dielectric":
-            raise ValueError("Background must be a dielectric")
-        if not math.isfinite(tolerance) or tolerance <= 0:
-            raise ValueError("Tolerance must be positive")
+        if not isinstance(background, Material): raise ValueError("Background must be a dielectric")
+        native.Scene(background._native(), tolerance)
         self.background, self.tolerance = background, tolerance
-        self._objects, self._faces = [], []
+        self._objects = []
+
+    def _native(self):
+        result = native.Scene(self.background._native(), self.tolerance)
+        for o in self._objects:
+            result.add(_shape_native(o.shape), o.material._native() if o.material else None, o.volume, o.terminate)
+        return result
+
+    @classmethod
+    def _from_native(cls, value):
+        result = cls(Material._from_native(value.background), tolerance=value.tolerance)
+        result._objects = [Object(_shape_python(o.shape), Material._from_native(o.material) if o.material else None,
+                                  o.volume, o.terminate) for o in value.objects]
+        return result
 
     @property
     def objects(self):
@@ -134,18 +122,10 @@ class Scene:
 
     def _add(self, shape, material, volume, terminate=""):
         s = copy_shape(shape)
-        if volume and not (isinstance(s, (Box, Sphere)) or isinstance(s, Cylinder) and s.capped):
-            raise ValueError("Volumes must be boxes, spheres, or capped cylinders")
-        fs = faces(s)
-        for f in fs: _core._validate_surface(f)
-        if not terminate:
-            if not isinstance(material, Material): raise TypeError("Expected Material")
-            if not volume and material.kind == "dielectric":
-                raise ValueError("Dielectrics require a volume; surfaces must be PEC or metal")
-        i = len(self._objects)
+        if material is not None and not isinstance(material, Material): raise TypeError("Expected Material")
+        index = self._native().add(_shape_native(s), material._native() if material else None, volume, terminate)
         self._objects.append(Object(s, material, volume, terminate))
-        self._faces.extend((i, f) for f in fs)
-        return i
+        return index
 
     def add_volume(self, shape, material): return self._add(shape, material, True)
     def add_surface(self, shape, material): return self._add(shape, material, False)
@@ -155,64 +135,14 @@ class Scene:
             raise ValueError("Use entry/exit for volumes; surfaces terminate on any hit")
         return self._add(shape, None, volume, on)
 
-    def region_at(self, position):
-        p = vector(position)
-        for i in range(len(self._objects)-1, -1, -1):
-            o = self._objects[i]
-            if o.volume and not o.terminate and contains(o.shape, p): return i
-        return -1
-
-    def material(self, region):
-        return self.background if region == -1 else self._objects[region].material
-
-    def starts_terminated(self, p):
-        return any(o.volume and o.terminate == "entry" and contains(o.shape, p) for o in self._objects)
+    def region_at(self, position): return self._native().region_at(vector(position))
+    def material(self, region): return Material._from_native(self._native().material(region))
+    def starts_terminated(self, p): return self._native().starts_terminated(vector(p))
 
     def validate(self):
-        """Validate shapes. Overlaps use insertion priority, junctions resolve at each hit.
-
-        Geometry thinner than the intersection tolerance is not resolved.
-        No destructive boolean operation is applied to user geometry.
-        """
-        for _, f in self._faces: _core._validate_surface(f)
+        self._native().validate()
         return self
 
     def next_event(self, origin, direction, max_distance):
-        hits = []
-        for i,f in self._faces:
-            h = _core._intersect(f, origin, direction, self.tolerance, max_distance)
-            if h is not None: hits.append((h[0], i, f, np.asarray(h[1])))
-        # A single closed primitive may be entered without changing the winning
-        # material. Requery after skipped crossings to find its exit as well.
-        hits.sort(key=lambda h:h[0])
-        if not hits: return None
-        distance = hits[0][0]
-        group = [h for h in hits if h[0]-distance <= self.tolerance]
-        p = origin+distance*direction
-        probe = 2*self.tolerance
-        before, after = self.region_at(p-probe*direction), self.region_at(p+probe*direction)
-        for _, i, f, n in group:
-            o = self._objects[i]
-            if o.terminate:
-                was, now = contains(o.shape,p-probe*direction), contains(o.shape,p+probe*direction)
-                if not o.volume or o.terminate == "entry" and not was and now or o.terminate == "exit" and was and not now:
-                    return Event(distance,p,n,f,i,before,after,"terminate")
-        active = [h for h in group if not self._objects[h[1]].terminate and
-                  (not self._objects[h[1]].volume or h[1] in (before,after))]
-        if active:
-            _, i, f, n = max(active, key=lambda h:h[1])
-            # An explicit opaque sheet supersedes region transitions at this hit.
-            sheets = [h for h in active if not self._objects[h[1]].volume]
-            if sheets: _, i, f, n = max(sheets, key=lambda h:h[1])
-            incompatible = any(abs(float(n@h[3])) < 1-1e-10 for h in active)
-            edge = any(edge_distance(h[2],p) <= self.tolerance for h in active)
-            if incompatible or edge:
-                return Event(distance,p,n,f,i,before,after,"ambiguous")
-            if sheets or self.material(before) != self.material(after):
-                return Event(distance,p,n,f,i,before,after,"interface")
-        shifted = p+probe*direction
-        remaining = max_distance-distance-probe
-        if remaining <= self.tolerance: return None
-        event = self.next_event(shifted,direction,remaining)
-        if event is not None: event.distance += distance+probe
-        return event
+        event = self._native().next_event(vector(origin), vector(direction), max_distance)
+        return Event._from_native(event) if event is not None else None

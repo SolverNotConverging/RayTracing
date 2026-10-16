@@ -1,4 +1,4 @@
-"""Open cylinder and bottom disk with colocated downward CST antennas.
+"""Open cylinder and bottom disk with colocated analytical horizontal dipoles.
 
 Run with .venv/Scripts/python.exe example2.py to open the desktop viewer.
 """
@@ -10,10 +10,10 @@ import numpy as np
 from raytracing import point_ray as rt
 
 
-def main(show=True):
+def main(show=True, *, ray_count=200_000, output=None):
     config = rt.SolverConfig(
         frequency_hz=77e9,
-        ray_count=200_000,
+        ray_count=ray_count,
         max_reflections=8,
         max_distance=20.0,
     )
@@ -28,10 +28,11 @@ def main(show=True):
                           half_length=depth / 2, capped=False), rt.Material.pec())
     scene.add(rt.Disk([0, 0, -depth], [0, 0, -1], radius), rt.Material.pec())
 
-    patch = rt.load_farfield(rt.example_pattern())
-    # The supplied CST patch already points downward (-z). Both endpoints copy it.
-    tx = rt.Transmitter(antenna_position, patch)
-    rx = rt.Receiver(antenna_position, patch)
+    # A horizontal half-wave dipole has broadside radiation toward the bottom.
+    antenna = rt.Antenna(rt.ThinWireDipole(rt.SPEED_OF_LIGHT / config.frequency_hz / 2))
+    antenna.rotate([0, 1, 0], 90.0)
+    tx = rt.Transmitter(antenna_position, antenna)
+    rx = rt.Receiver(antenna_position, antenna)
 
     print("Running example 2...", flush=True)
     result = rt.solve(scene, tx, rx, config)
@@ -41,7 +42,7 @@ def main(show=True):
         flush=True,
     )
 
-    output = Path(__file__).resolve().parent / "results" / "example2"
+    output = Path(output) if output is not None else Path(__file__).resolve().parent / "results" / "example2"
     output.mkdir(parents=True, exist_ok=True)
     rt.save_h5(result, output / "simulation.h5")
     rt.save_impulse_csv(result.impulse_response, output / "impulse_response.csv")
@@ -63,4 +64,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-show', action='store_true')
-    main(show=not parser.parse_args().no_show)
+    parser.add_argument('--rays', type=int, default=200_000)
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    main(show=not args.no_show, ray_count=args.rays, output=args.output)

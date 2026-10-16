@@ -1,50 +1,147 @@
-# RayTracing 0.5
+# RayTracing
 
-Electromagnetic propagation with antenna-driven multipath impulse responses and
-paraxial Gaussian-beam transport. The main examples use the native C++ point-ray
-solver through `raytracing.point_ray`. The top-level `raytracing` namespace provides
-Gaussian beams, reflected/transmitted branch trees and explicit material volumes.
+A standalone C++20 point-ray and Gaussian-beam numerical library with a Python API, Matplotlib
+impulse plots and PyVista ray visualization. The solver discovers and refines
+specular paths, calculates spreading and polarized fields, and returns coherent
+receiver impulse taps. Graphics libraries belong to applications, outside the
+numerical library.
 
-## Installation
+Both solvers run in the same C++ core. Python provides data adapters, persistence
+and visualization; it calls the native numerical implementation for both APIs.
 
-Requires CPython 3.14+, a C++20 compiler, CMake 4.2+, Ninja, Eigen3,
-nlohmann_json and shared HDF5. NumPy and Matplotlib provide beam algebra and plots.
-The native solver saves simulation results in HDF5.
+## Standalone C++ build
 
-On this development machine, the Git-ignored local shortcut initializes MSVC and
-selects the Git-ignored CMakeUserPresets.json:
+Requires CMake 4.2+, a C++20 compiler and Eigen3. Python, HDF5, JSON, Matplot++
+and VTK are not required for a core build. In a Windows Developer PowerShell,
+install Eigen with vcpkg and pass your toolchain path:
 
 ```powershell
-.\install.ps1
+cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build/native
+ctest --test-dir build/native --output-on-failure
+./build/native/examples/cpp/point_ray_example.exe --rays 20000
+cmake --install build/native --prefix ./build/sdk --component Development
 ```
 
-Other Windows users should open an x64 Visual Studio Developer PowerShell,
-activate their virtual environment, and configure their own vcpkg path:
+On Linux/macOS use the same CMake commands with your Eigen installation, omit the
+vcpkg toolchain if unnecessary, and omit `.exe`. The core is a static library;
+Eigen and C++20 are public requirements. Build consumers with compatible compiler,
+Eigen settings and C++ runtime. No cross-compiler binary ABI is promised.
+
+To consume an installation:
+
+```cmake
+cmake_minimum_required(VERSION 4.2)
+project(MySimulation LANGUAGES CXX)
+find_package(RayTracing 0.5 CONFIG REQUIRED COMPONENTS Core)
+add_executable(simulation main.cpp)
+target_link_libraries(simulation PRIVATE RayTracing::Core)
+```
+
+Set `CMAKE_PREFIX_PATH` to the SDK installation prefix. Alternatively,
+`add_subdirectory(path/to/RayTracing)` provides the same target without installing.
+Examples and tests are off by default when embedded in another project.
+
+```cpp
+#include <RayTracing/Solver.hpp>
+#include <cmath>
+
+int main() {
+    rt::Scene scene;
+    rt::Transmitter tx{Vec3::Zero(), rt::Isotropic{}};
+    rt::Receiver rx{{3, 0, 0}, rt::Isotropic{}};
+    const auto result = rt::solve(scene, tx, rx);
+    const auto channel = rt::frequency_response(result.impulseResponse);
+    return result.rays.empty() || !std::isfinite(std::abs(channel));
+}
+```
+
+Imported antenna patterns are loaded explicitly at runtime using `rt::load_farfield(path)`
+in C++ or `rt.load_farfield(path)` in Python. No pattern data is compiled into the
+library or bundled into the wheel. CST/HFSS files in `antenna_patterns/` are runtime
+test fixtures. Examples use analytical antennas.
+
+Use SI units. The field convention is `exp(-i omega t)`. Results own their scene,
+settings and antenna snapshots. `responseRayIndices` maps impulse path indices to
+solved rays; a refined geometric path can have no field when spreading is singular.
+Invalid inputs throw exceptions, while numerical path statuses describe unsuccessful
+or singular candidates. Low-level geometry routines require validated geometry.
+
+## C++ persistence and graphics
+
+| CMake option | Default | Effect |
+| --- | --- | --- |
+| `RAYTRACING_BUILD_PYTHON` | OFF | Full Python API; requires IO |
+| `RAYTRACING_BUILD_IO` | Same as Python option on first configuration | HDF5/CSV library |
+| `RAYTRACING_BUILD_EXAMPLES` | ON for standalone builds | C++ room example |
+| `RAYTRACING_EXAMPLE_MATPLOT` | OFF | Matplot++ impulse plotting in example |
+| `RAYTRACING_EXAMPLE_VTK` | OFF | Native VTK ray viewer in example |
+| `RAYTRACING_BUILD_BENCHMARKS` | OFF | Analytical spreading benchmarks |
+| `BUILD_TESTING` | ON for standalone builds | Numerical tests; IO checks when enabled |
+
+Enable optional native features explicitly:
 
 ```powershell
+cmake -S . -B build/graphics -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=C:/opt/vcpkg/scripts/buildsystems/vcpkg.cmake -DRAYTRACING_BUILD_IO=ON -DRAYTRACING_EXAMPLE_MATPLOT=ON -DRAYTRACING_EXAMPLE_VTK=ON
+cmake --build build/graphics
+./build/graphics/examples/cpp/point_ray_example.exe --output build/example-output --plot build/example-output/impulse.png --screenshot build/example-output/scene.png
+./build/graphics/examples/cpp/point_ray_example.exe --view
+```
+
+Install `nlohmann-json` and `hdf5` for IO, `matplotplusplus` for plotting, and `vtk`
+for the native viewer. The Matplot++ default backend also needs gnuplot at runtime.
+These native graphics dependencies may require building through your package
+manager. Python visualization uses the installed Matplotlib/PyVista packages and
+does not require enabling either C++ graphics option.
+
+The C++ example uses the same mixed-geometry room as `example1.py`, with an
+analytical half-wave dipole transmitter and isotropic receiver. `--plot` saves magnitude and phase;
+`--screenshot` renders offscreen unless `--view` is also supplied. Cyan paths have
+fields, orange paths have invalid spreading, Tx is red and Rx is green. Use
+`--help` for all options. No files or windows are created without those flags.
+
+The example directory is also a standalone SDK consumer:
+
+```powershell
+cmake -S examples/cpp -B build/consumer -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/build/sdk" -DCMAKE_TOOLCHAIN_FILE=C:/opt/vcpkg/scripts/buildsystems/vcpkg.cmake
+cmake --build build/consumer
+```
+
+For persistence, request `find_package(RayTracing CONFIG REQUIRED COMPONENTS IO)`,
+link `RayTracing::IO`, and include `<RayTracing/ResultIO.hpp>`. The consumer must
+enable C as well as C++ because CMake's HDF5 finder checks its C library. An
+installed package loads IO dependencies only when the IO component is requested.
+
+## Python installation
+
+Requires CPython 3.14+, the C++ build tools above, Eigen3, nlohmann-json and HDF5.
+The Python package always includes NumPy, Matplotlib and PyVista dependencies.
+Native VTK and Matplot++ are not used by the Python build.
+
+```powershell
+# In an x64 Visual Studio Developer PowerShell, with your environment active:
 $env:CMAKE_GENERATOR = 'Ninja'
-$env:CMAKE_ARGS = '-DCMAKE_TOOLCHAIN_FILE=C:/your/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_CXX_SCAN_FOR_MODULES=OFF'
+$env:CMAKE_ARGS = '-DCMAKE_TOOLCHAIN_FILE=C:/opt/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_CXX_SCAN_FOR_MODULES=OFF'
 python -m pip install .
 ```
 
-Install `eigen3`, `nlohmann-json` and `hdf5` for `x64-windows` with vcpkg first.
-For development, install `.[dev]`; `--no-build-isolation` can be used once the
-build tools are installed in the virtual environment. On Linux/macOS, install
-the corresponding native development libraries and configure CMAKE_PREFIX_PATH.
+The wheel build explicitly enables Python and IO and installs only the Python
+component, excluding C++ SDK headers and archives. For development, install
+`.[dev]`. The local `.\install.ps1` shortcut remains usable with the local preset.
+On Linux/macOS install the corresponding native libraries and configure
+`CMAKE_PREFIX_PATH` as needed.
 
-PyCharm may mark `python/` as a **Sources Root**. The source package automatically
-loads `_core` and its runtime DLLs from the matching installed wheel in the active
-interpreter's environment. Python edits are used immediately; rebuild and install
-after changing C++ bindings or native code. If no matching native module is
-installed, the import reports how to install it. Verify the native module with
-`python -c "import raytracing; print(raytracing._core.__file__)"`.
+The point-ray API is `from raytracing import point_ray as rt`. The top-level
+`raytracing` API continues to expose Gaussian-beam transport. PyCharm can mark
+`python/` as a Sources Root; source imports find the native extension in the
+matching installed wheel. Rebuild/reinstall after C++ changes.
 
 ## Main examples: multipath impulse responses
 
 | Example | Scene | Launch rays |
 | --- | --- | --- |
-| [example1.py](example1.py) / [notebook](example1.ipynb) | Mixed-geometry room; CST patch aimed along +x; isotropic receiver | 20,000 |
-| [example2.py](example2.py) / [notebook](example2.ipynb) | Open PEC cylinder and bottom disk; colocated downward CST antennas offset 6 mm from the axis | 200,000 |
+| [example1.py](example1.py) / [notebook](example1.ipynb) | Mixed-geometry room; analytical half-wave dipole along z; isotropic receiver | 20,000 |
+| [example2.py](example2.py) / [notebook](example2.ipynb) | Open PEC cylinder and bottom disk; colocated horizontal analytical dipoles offset 6 mm from the axis | 200,000 |
 
 Both scenes use explicit PEC surface materials, a 77 GHz carrier, up to eight
 reflections and a 20 m path limit. Run from the repository with its `.venv`:
@@ -58,17 +155,18 @@ Each script opens an interactive scene. Add `--no-show` to generate results off
 screen. The notebooks display the impulse plots and scene screenshots inline;
 select the repository's `.venv` kernel.
 
-Each example writes these files under `results/example1` or `results/example2`:
+Use `--rays N` to change the discovery budget and `--output DIR` to choose the
+output directory. By default, each example writes these files under `results/example1` or `results/example2`:
 
 - `impulse_response.png`: coherent tap magnitude and wrapped phase versus absolute delay.
 - `impulse_response.csv`: complex impulse taps and their delays.
 - `simulation.h5`: saved simulation snapshot.
 - `scene.png`: antenna, geometry and path visualization.
 
-The point-ray HDF5 reader limits each JSON metadata field to 64 MiB. The 200,000-ray
-cylinder snapshot can exceed that limit because it includes discovery candidates.
-Its impulse CSV remains loadable with `rt.load_impulse_csv(...)`; use that file
-to replot the response without rerunning the solver.
+The point-ray HDF5 format stores large path and discovery-candidate records in
+chunked byte datasets. These records can exceed 64 MiB and round-trip through
+`save_h5` and `load_h5`; the reader also accepts legacy scalar path records.
+Other JSON metadata fields retain a 64 MiB limit, enforced by both writer and reader.
 
 The point-ray API uses `Scene.add(shape, material)` and
 `solve(scene, transmitter, receiver, config)`. To replot a saved response:
@@ -86,6 +184,55 @@ The taps retain coherent carrier phase. `frequency_response(response, offset_hz)
 evaluates the envelope response at a frequency offset from that carrier using the
 computed taps. Launch-ray density controls path discovery; refine it when checking
 convergence. Singular receiver caustics have no valid point-ray field contribution.
+
+## Native Gaussian-beam API
+
+`<RayTracing/BeamSolver.hpp>` exposes the Gaussian solver in `rt::beam`, linked
+through the same `RayTracing::Core` target. It includes material evaluation,
+volume insertion priority, termination, Gaussian/plane-wave/aperture launch,
+beamlet decomposition, Fresnel splitting, differential curved-interface maps,
+propagation, field sampling and branch power diagnostics. It depends only on Eigen
+and the C++ standard library. It never imports Python or creates plotting windows.
+
+```cpp
+#include <RayTracing/BeamSolver.hpp>
+
+namespace b = rt::beam;
+b::Scene scene;
+scene.add(b::Box{{0, 0, .5065}, {2, 2, .0065}},
+          b::Material{"dielectric", {4, .02}, 1, 0, "glass"}, true);
+b::GaussianBeam beam;
+beam.waistRadius.setConstant(.1);
+b::SolverConfig config;
+config.frequencyHz = 10e9;
+config.maxDistance = 4;
+const auto result = b::solve(scene, b::Source{beam}, config);
+const Vec3C field = result.field_at({.03, .01, 1});
+```
+
+Run `build/native/examples/cpp/gaussian_beam_example` (with `.exe` on Windows) for
+complex-field CSV samples through a lossy dielectric slab. The example also builds
+from the standalone installed-package consumer directory. Plot its output in an
+application; the numerical example has no rendering dependency.
+
+Use a `std::vector<b::Source>` for coherent source superposition. An
+`ApertureSource::field` callback supplies Cartesian complex field samples; C++
+constructs the grid, fits coefficients and launches beamlets. The
+`ApertureSource::from_antenna(...)` factory samples analytical or runtime-imported
+antenna patterns in the vacuum far zone. `solve_states` accepts custom launch
+states. Launch states, geometry and settings are copied into numerical results.
+
+Python keeps the existing `Scene`, `GaussianBeam`, `PlaneWave`, `ApertureSource`,
+`SolverConfig`, `Simulation`, plotting and JSON APIs. Python callables provide
+aperture samples while holding the GIL; the C++ branch loop and field queries
+release it. Python result data remain serializable and editable; field queries
+convert the current data into a native snapshot, so edits cannot leave a stale
+cached numerical result. Batch `fields_at` amortizes this conversion.
+
+All model limits below still apply: this port preserves the paraxial, weak-loss
+model and does not add clipping, diffraction or receive-mode overlap. The Gaussian
+solver returns field samples and branch trees; impulse taps remain the point-ray
+solver's output.
 
 ## Gaussian-beam transport
 
@@ -272,13 +419,10 @@ are saved under `benchmarks/results/beams`. See `benchmarks/BEAMS.md` for the
 reference equations and what each convergence sweep establishes. The native
 CTest suite and spreading benchmarks validate the point-ray numerical routines.
 
-The current Gaussian-beam validation runs `raytracing.transport.solve`, with
-finite `GaussianBeam` sources and `PlaneWave` interface limits. All 23 analytical
-checks pass; the 28 Python tests also pass. Finite-beam slab transmission has
-maximum relative complex-field error 4.06e-15, repeated spherical/cylindrical
-mirror transport 1.56e-15, and curved refraction 8.53e-14. See the generated
-[validation report](benchmarks/results/beams/REPORT.md) for every tolerance and
-[BEAMS.md](benchmarks/BEAMS.md) for independent theory and model scope.
+The Gaussian-beam validation exercises the shared C++ implementation with finite sources and plane-wave interface
+limits. Run it to regenerate the local report and convergence figures; generated
+results are ignored by Git. See [BEAMS.md](benchmarks/BEAMS.md) for independent
+theory, tolerances and model scope.
 
 The native spreading and circular-pipe caustic validations exercise the separate
 point-ray solver. Their results do not validate Gaussian-beam transport. The main

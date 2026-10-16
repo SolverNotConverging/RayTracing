@@ -1,6 +1,7 @@
-#include "Solver.hpp"
+#include <RayTracing/Solver.hpp>
 #include <algorithm>
 #include <cmath>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -101,7 +102,9 @@ namespace rt {
         // Colocated endpoints receive reflected returns, with no zero-length direct ray.
         if (directOffset.norm() > 0)
             directions.push_back(directOffset.normalized());
-        std::vector<RefinementResult> trials;
+        // A fixed sequence of planar reflectors has at most one isolated
+        // specular solution. Curved sequences retain every discovery seed.
+        std::set<std::vector<std::size_t>> convergedPlanarSequences;
         for (const auto &direction: directions) {
             // Geometry discovery is independent of source-pattern nulls and of
             // materials: every surface reflects specularly whatever its loss.
@@ -113,13 +116,23 @@ namespace rt {
                                               std::vector<std::size_t> sequence;
                                               for (const auto &hit: candidateRay.reflections_)
                                                   sequence.push_back(hit.surfaceIndex_);
-                                              auto refined = refine_path(tx.position, direction, rx.position,
+                                              const bool planar = std::all_of(sequence.begin(), sequence.end(), [&](auto index) {
+                                                  const auto &surface = scene.surfaces()[index];
+                                                  return !std::holds_alternative<Sphere>(surface) &&
+                                                         !std::holds_alternative<Cylinder>(surface);
+                                              });
+                                              if (planar && convergedPlanarSequences.contains(sequence))
+                                                  return;
+                                              const Vec3 seed = sequence.empty() && directOffset.norm() > 0
+                                                                    ? directOffset.normalized().eval() : direction;
+                                              auto refined = refine_path(tx.position, seed, rx.position,
                                                                          scene.surfaces(), sequence, refinement);
+                                              if (planar && refined.status_ == RefinementStatus::Converged)
+                                                  convergedPlanarSequences.insert(sequence);
                                               Candidate candidate;
-                                              candidate.refinement = refined;
+                                              candidate.refinement = std::move(refined);
                                               candidate.coarseVertices = candidateRay.vertices_;
                                               result.candidates.push_back(std::move(candidate));
-                                              trials.push_back(std::move(refined));
                                           });
             ++result.launchedRays;
             // Count launches with at least one candidate as received, even though
@@ -127,6 +140,12 @@ namespace rt {
             const auto status = received ? TraceStatus::Received : traced.status_;
             ++result.traceStatusCounts.at(static_cast<std::size_t>(status));
         }
+        // Move the refinement payloads through the existing deduplicator rather
+        // than retaining a second copy of every candidate geometry.
+        std::vector<RefinementResult> trials;
+        trials.reserve(result.candidates.size());
+        for (auto &candidate : result.candidates)
+            trials.push_back(std::move(candidate.refinement));
         for (auto index: deduplicate_paths(trials, settings.deduplication)) {
             const auto &path = trials[index];
             std::vector<std::size_t> sequence;
@@ -153,6 +172,8 @@ namespace rt {
             }
             result.rays.push_back(std::move(ray));
         }
+        for (std::size_t i = 0; i < trials.size(); ++i)
+            result.candidates[i].refinement = std::move(trials[i]);
         make_response(result);
         return result;
     }

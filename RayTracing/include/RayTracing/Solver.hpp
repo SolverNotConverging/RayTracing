@@ -75,6 +75,8 @@ namespace rt {
         Transmitter transmitter;
         Receiver receiver;
         std::vector<SolvedRay> rays;
+        // Discovery trials; converged planar sequences retain one representative.
+        // Curved sequences retain all seeds to preserve multiple stationary paths.
         std::vector<Candidate> candidates;
         ImpulseResponse impulseResponse;
         std::size_t launchedRays = 0;

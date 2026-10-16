@@ -1,5 +1,5 @@
-#include "Tracing.hpp"
-#include "Constants.hpp"
+#include <RayTracing/Tracing.hpp>
+#include <RayTracing/Constants.hpp>
 #include <cmath>
 #include <stdexcept>
 
@@ -72,9 +72,12 @@ TraceResult trace_ray(TracedRay &ray, const std::vector<Surface> &surfaces,
 
     int reflections = 0;
     double travelled = 0.0;
-    // A transmitter inside the reception sphere must first leave it. Otherwise
-    // a monostatic trace terminates at launch instead of finding a return.
-    bool receiverArmed = (ray.position() - receiverPosition).norm() > receiverRadius;
+    // Colocated launches must leave the sphere before a direct reception can
+    // occur. Distinct endpoints may already share a capture sphere; a callback
+    // still needs their direct-path candidate, validated by refinement.
+    const double endpointSeparation = (ray.position() - receiverPosition).norm();
+    bool receiverArmed = endpointSeparation > receiverRadius ||
+                         (onReception && endpointSeparation > 0.0);
     // Validate the receiver even when reception starts disarmed.
     intersect_receiver(ray, receiverPosition, receiverRadius);
     while (true) {

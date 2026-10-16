@@ -1,5 +1,7 @@
 #include <RayTracing/Solver.hpp>
+#ifdef RAYTRACING_TEST_IO
 #include <RayTracing/ResultIO.hpp>
+#endif
 #include <filesystem>
 #include <algorithm>
 #include <iostream>
@@ -92,6 +94,7 @@ int main() try {
         peak = std::max(peak, solved.field->receiverField_.norm());
     }
     check(peak > 0 && peak < 300, "Shifted tube has a divergent field");
+#ifdef RAYTRACING_TEST_IO
     const auto saved=std::filesystem::temp_directory_path()/"raytracing-caustic-roundtrip.h5";
     rt::save_h5(offAxis,saved);
     const auto restored=rt::load_h5(saved);
@@ -106,6 +109,7 @@ int main() try {
     }
     check(internalFocus,"Persistence test did not exercise an internal focus");
     std::filesystem::remove(saved);
+#endif
 
     // Doubling launches must discover the same discrete roots, not add copies to h(t).
     config.rayCount *= 2;

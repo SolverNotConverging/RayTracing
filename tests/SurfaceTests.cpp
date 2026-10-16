@@ -1,4 +1,4 @@
-#include "Tracing.hpp"
+#include <RayTracing/Tracing.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <string>

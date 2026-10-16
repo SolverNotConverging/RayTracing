@@ -1,5 +1,5 @@
-#include "PathRefinement.hpp"
-#include "Tracing.hpp"
+#include <RayTracing/PathRefinement.hpp>
+#include <RayTracing/Tracing.hpp>
 
 #include <cmath>
 #include <iostream>

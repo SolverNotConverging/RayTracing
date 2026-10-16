@@ -1,4 +1,4 @@
-#include "Surface.hpp"
+#include <RayTracing/Surface.hpp>
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>

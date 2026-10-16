@@ -53,12 +53,6 @@ from .visualization import inspect_scene, visualize, ViewOptions, AntennaPattern
 
 __version__ = "0.5.0"
 
-
-def example_pattern() -> _Path:
-    """Return the bundled 76–78 GHz CST patch pattern, independent of the working directory."""
-    return _native_dir / "data" / "simple_patch.ffs"
-
-
 __all__ = ["Material", "VACUUM", "fresnel", "C0", "EPS0", "MU0", "ETA0",
            "Scene", "Box", "Sphere", "Cylinder", "Rectangle", "Disk", "Triangle",
            "GaussianBeam", "PlaneWave", "ApertureSource", "SolverConfig", "Simulation", "solve",

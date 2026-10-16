@@ -1,4 +1,4 @@
-#include "Spreading.hpp"
+#include <RayTracing/Spreading.hpp>
 
 #include <Eigen/SVD>
 #include <cmath>

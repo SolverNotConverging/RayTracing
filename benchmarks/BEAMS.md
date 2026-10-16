@@ -6,10 +6,11 @@ check misses its tolerance. It writes CSVs, `summary.json`, `REPORT.md`, and
 convention is exp(-i omega t). References below are implemented independently
 of the solver's Fresnel and curvature transport routines.
 
-This suite runs the current `raytracing.transport.solve` API, with finite
+This suite runs `raytracing.transport.solve`, backed by `rt::beam::solve_states` in
+the C++ core, with finite
 `GaussianBeam` sources and `PlaneWave` interface limits. It does not call the
 native point-ray solver or use its spreading/Maslov results as a Gaussian oracle.
-The current run passes all 23 checks; see [REPORT.md](results/beams/REPORT.md).
+Run the suite to generate its 23-check report at `results/beams/REPORT.md`.
 
 | Data file | Independent reference and purpose |
 | --- | --- |

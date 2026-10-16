@@ -86,7 +86,7 @@ error is 5.38e-7 with no external caustic correction or fitted gain.
 
 ## Reproduce and view
 
-Build with `BUILD_TESTING=ON` and `BUILD_BENCHMARKS=ON`, then run:
+Build with `BUILD_TESTING=ON` and `RAYTRACING_BUILD_BENCHMARKS=ON`, then run:
 
 ```powershell
 .venv/Scripts/ctest.exe --test-dir build/windows-vcpkg --output-on-failure
@@ -97,8 +97,4 @@ build/windows-vcpkg/SpreadingBenchmarks.exe benchmarks/results/caustics
 
 Install the rebuilt wheel before the Python replay. Other platforms use the
 same targets and scripts with their normal build paths. CSVs, summaries and
-PNG/SVG figures are committed in `results/caustics`.
-
-![Mirror amplitude and phase validation](results/caustics/caustic_phase_validation.png)
-
-![Four-family pipe validation](results/caustics/pipe_caustics.png)
+PNG/SVG figures are generated locally in `results/caustics` and ignored by Git.

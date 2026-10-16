@@ -3,14 +3,14 @@
 The current Gaussian-beam solver is validated by [BEAMS.md](BEAMS.md) and
 `python benchmarks/beam_transport.py`. Its 23 checks compare finite complex fields,
 beam widths, Gouy phase, refraction and coherent slabs against independent theory.
-The generated [report](results/beams/REPORT.md) records errors and tolerances.
+The generated `results/beams/REPORT.md` report records errors and tolerances.
 
 For point-ray conjugate-point counting, Maslov phase, repeated-focus checks and
-committed analytical validation figures, see [CAUSTICS.md](CAUSTICS.md). These
+generated analytical validation figures, see [CAUSTICS.md](CAUSTICS.md). These
 point-ray results do not validate the Gaussian-beam solver.
 
 For the **0.5 public beam/volume solver**, see [BEAMS.md](BEAMS.md) and run
-`python benchmarks/beam_transport.py`. Its checked-in results are under
+`python benchmarks/beam_transport.py`. Its generated results are under
 `results/beams`. The remainder of this document validates the native point-source
 spreading routines used by `raytracing.point_ray` and the main room/cylinder
 impulse-response examples.
@@ -22,7 +22,7 @@ the comparison figures using Matplotlib in the existing `.venv`.
 ## Build and run
 
 Configure `cmake-build-tests` using the platform-specific instructions in the
-[main README](../README.md#installation): MSVC/vcpkg on Windows, Apple Clang/Homebrew
+[main README](../README.md#standalone-c-build): MSVC/vcpkg on Windows, Apple Clang/Homebrew
 on macOS, or GCC/distribution packages on Linux. Activate `.venv` first.
 
 Windows Developer PowerShell:
@@ -43,7 +43,7 @@ python benchmarks/plot_results.py benchmarks/results
 ctest --test-dir cmake-build-tests --output-on-failure
 ```
 
-CTest writes numerical data into the build directory. Set `BUILD_BENCHMARKS=OFF`
+CTest writes numerical data into the build directory. Set `RAYTRACING_BUILD_BENCHMARKS=OFF`
 to omit the benchmark executable. Plotting is a separate Python operation.
 
 ## Definition and normalization
@@ -119,7 +119,7 @@ requires approximately second-order convergence of the area error.
 
 ## Outputs and scope
 
-`results/` contains ten comparison PNGs, a convergence PNG, `spreading.csv`,
+Running the commands above generates in `results/` ten comparison PNGs, a convergence PNG, `spreading.csv`,
 `convergence.csv`, and `summary.txt`. Each comparison shows analytical field factor
 and Jacobian samples alongside the maximum relative error across both singular
 values, area and field factor. Numerical checks use a relative tolerance of 2e-6.

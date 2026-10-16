@@ -1,5 +1,5 @@
-#include "Material.hpp"
-#include "Constants.hpp"
+#include <RayTracing/Material.hpp>
+#include <RayTracing/Constants.hpp>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>

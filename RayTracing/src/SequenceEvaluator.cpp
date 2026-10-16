@@ -1,4 +1,4 @@
-#include "SequenceEvaluator.hpp"
+#include <RayTracing/SequenceEvaluator.hpp>
 
 #include <cmath>
 #include <algorithm>
