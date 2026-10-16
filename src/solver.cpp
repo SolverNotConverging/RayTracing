@@ -14,16 +14,27 @@ namespace rt {
 
         void validate(const SolverConfig &c) {
             require(positive(c.frequencyHz) && c.rayCount > 0 && c.maxReflections >= 0 && positive(c.maxDistance) &&
-                    positive(c.receptionRadius) && positive(c.sourceReference) && c.delayTolerance >= 0,
+                    positive(c.receptionRadius) && positive(c.sourceReference) &&
+                    std::isfinite(c.delayTolerance) && c.delayTolerance >= 0,
                     "Invalid solver frequency, ray count, limits or normalization");
             c.background.validate();
             require(c.background.kind == MaterialKind::Dielectric && c.background.index(c.frequencyHz).imag() == 0,
                     "The point-ray background must be a lossless dielectric");
-            require(positive(c.refinement.receiverTolerance) && positive(c.refinement.finiteDifferenceStep) &&
-                    c.spreading.angularStep > 0 && c.spreading.angularStep <= 0.1 &&
-                    positive(c.spreading.referenceDistance) && positive(c.deduplication.positionTolerance) &&
-                    positive(c.deduplication.angleTolerance) && positive(c.deduplication.lengthTolerance),
-                    "Invalid refinement, spreading or deduplication options");
+            const auto &r = c.refinement;
+            require(r.maxIterations >= 0 && r.maxBacktracks >= 0 && positive(r.receiverTolerance) &&
+                    positive(r.finiteDifferenceStep) && positive(r.maxDirectionStep) &&
+                    positive(r.cornerSeparationTolerance) && std::isfinite(r.tMin) && r.tMin >= 0,
+                    "Invalid refinement iteration, step or tolerance options");
+            const auto &s = c.spreading;
+            require(positive(s.angularStep) && s.angularStep <= 0.1 && s.maxStepHalvings >= 0 &&
+                    positive(s.relativeDerivativeTolerance) && positive(s.absoluteDerivativeTolerance) &&
+                    positive(s.minimumSingularValue) && positive(s.minimumSingularValueRatio) &&
+                    s.minimumSingularValueRatio < 1 && positive(s.referenceDistance),
+                    "Invalid spreading iteration, step or tolerance options");
+            const auto &d = c.deduplication;
+            require(positive(d.positionTolerance) && positive(d.angleTolerance) &&
+                    d.angleTolerance <= pi && positive(d.lengthTolerance),
+                    "Invalid path deduplication tolerances");
         }
 
         bool curved(const Surface &surface) {

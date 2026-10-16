@@ -1,4 +1,4 @@
-foreach (name IN ITEMS geometry material sequence refinement field antenna cylinder_return beam)
+foreach (name IN ITEMS geometry material sequence refinement field antenna cylinder_return beam spreading)
     add_executable(test_${name} test_${name}.cpp)
     target_link_libraries(test_${name} PRIVATE RayTracing::RayTracing)
     target_compile_definitions(test_${name} PRIVATE TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/../data")

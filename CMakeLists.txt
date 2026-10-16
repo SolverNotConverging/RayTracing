@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-project(RayTracing VERSION 1.0.0 LANGUAGES CXX)
+project(RayTracing VERSION 1.0.1 LANGUAGES CXX)
 
 option(RAYTRACING_BUILD_PYTHON "Build the Python extension module" OFF)
 

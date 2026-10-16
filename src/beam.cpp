@@ -505,8 +505,9 @@ namespace rt::beam {
     Simulation solve_states(const Scene &scene, std::vector<State> states, const SolverConfig &config) {
         const double f = config.frequencyHz;
         require(positive(f) && positive(config.maxDistance) && config.maxInteractions >= 0 && config.maxBranches >= 1 &&
-                config.minPowerFraction >= 0 && config.minPowerFraction < 1,
-                "Invalid beam solver frequency, distance, budgets or power threshold");
+                config.minPowerFraction >= 0 && config.minPowerFraction < 1 &&
+                config.maxLossRatio >= 0 && config.maxLossRatio <= 0.01,
+                "Invalid beam solver frequency, distance, budgets, power threshold or weak-loss ratio (0..0.01)");
         require(!states.empty() && states.size() <= config.maxBranches,
                 "Need at least one source state, and no more than max_branches");
         const auto weakLoss = [&](const Material &m) {
