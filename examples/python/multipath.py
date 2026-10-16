@@ -1,4 +1,5 @@
 """Multipath impulse response between two antennas in a corner reflector."""
+import matplotlib.pyplot as plt
 import raytracing as rt
 
 scene = rt.Scene()
@@ -13,4 +14,6 @@ for tap in result.impulse_response.taps:
     print(f"{tap.delay * 1e9:.3f} ns  {tap.coefficient:.4g}")
 
 rt.plot_impulse_response(result.impulse_response)
+plt.show()
+
 rt.show_paths(result)

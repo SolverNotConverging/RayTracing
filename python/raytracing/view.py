@@ -56,7 +56,7 @@ def _plotter(show, window_size, background="white"):
 def _finish(plotter, show, screenshot):
     plotter.reset_camera()
     if show:
-        plotter.show(screenshot=screenshot, auto_close=False)
+        plotter.show(screenshot=screenshot)
     elif screenshot is not None:
         plotter.screenshot(str(screenshot))
     return plotter

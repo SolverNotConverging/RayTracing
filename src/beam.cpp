@@ -477,6 +477,24 @@ namespace rt::beam {
         return values;
     }
 
+    ImpulseResponse Simulation::impulse_response(const Vec3 &point, const Vec3C &analyzer,
+                                                 double delayTolerance) const {
+        std::vector<ImpulseTap> taps;
+        const auto &medium = scene.material(scene.region_at(point));
+        if (!transparent(medium) || scene.starts_terminated(point)) return {config.frequencyHz, {}};
+        const double n = medium.index(config.frequencyHz).real();
+        for (std::size_t i = 0; i < segments.size(); ++i) {
+            const auto &segment = segments[i];
+            if (segment.material != medium) continue;
+            const Vec3C field = segment.field_at(point); // zero outside the segment
+            if (field.isZero(0)) continue;
+            const double distance = (point - segment.state.position).dot(segment.state.direction);
+            const double delay = (segment.state.opticalPath + n * distance) / speedOfLight;
+            taps.push_back({delay, analyzer.dot(field), field, {i}});
+        }
+        return group_taps(std::move(taps), config.frequencyHz, delayTolerance);
+    }
+
     std::map<std::string, double> Simulation::power_balance() const {
         std::map<std::string, double> result{
             {"launched", launchedPower}, {"absorbed", absorbedPower}, {"interface_flux_residual", interfaceFluxResidual}};

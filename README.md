@@ -43,8 +43,13 @@ scene = beam.Scene()
 scene.add_volume(rt.Box([0, 0, 0.5], [1, 1, 0.01]), rt.Material.dielectric(4 + 0.02j))
 result = beam.solve(scene, beam.GaussianBeam(waist_radius=0.1), beam.SolverConfig(frequency_hz=10e9))
 print(result.field_at([0, 0, 1]))
+rt.plot_impulse_response(result.impulse_response([0, 0, 1]))
 rt.show_beams(result)
 ```
+
+Both solvers return an `ImpulseResponse` of complex taps (`delays`, `coefficients`) at the
+carrier frequency. For beams, `result.impulse_response(point)` gives one tap per beam segment
+reaching the point, projected onto `analyzer` (default x); the tap fields sum to `field_at(point)`.
 
 `plot_impulse_response`, `plot_field`, `show_paths`, `show_beams` and `preview` need the
 `viz` extra (Matplotlib, PyVista). Results expose NumPy arrays, so save what you need with

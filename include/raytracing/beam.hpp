@@ -1,5 +1,6 @@
 #pragma once
 #include "antenna.hpp"
+#include "field.hpp"
 #include "geometry.hpp"
 #include <cstdint>
 #include <functional>
@@ -170,6 +171,10 @@ namespace rt::beam {
 
         Vec3C field_at(const Vec3 &point) const;
         std::vector<Vec3C> fields_at(const std::vector<Vec3> &points) const;
+        // One tap per segment reaching the point, delayed by its axis optical path / c
+        // from launch and projected onto a unit analyzer. tap.paths indexes segments.
+        ImpulseResponse impulse_response(const Vec3 &point, const Vec3C &analyzer = Vec3C::UnitX(),
+                                         double delayTolerance = 1e-13) const;
         // Constituent branch powers by fate; coherent totals need a field flux integral.
         std::map<std::string, double> power_balance() const;
     };

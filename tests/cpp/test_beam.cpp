@@ -24,6 +24,10 @@ int main() try {
         const double s=z-1;
         const auto expected=e0/(1.+Complex(0,s/zr))*std::exp(Complex(0,k*s));
         near(free.field_at({0,0,z})[0],expected,2e-12,"Vacuum Gaussian amplitude/Gouy phase changed");
+        const auto response=free.impulse_response({0,0,z});
+        check(response.taps.size()==1,"Vacuum beam must have one impulse tap");
+        near(response.taps[0].delay*c0,z,1e-12,"Impulse delay must start at the launch plane");
+        near(frequency_response(response),expected,2e-12,"Impulse sum must reconstruct the carrier field");
     }
     const auto state=free.segments[0].state;
     auto many=state; for (int i=0;i<100;++i) many=b::propagate(many,.02,{},frequency);
@@ -38,6 +42,10 @@ int main() try {
         const Complex n=std::sqrt(epsilon), p=std::exp(Complex(0,k)*n*.013), r=(n-1.)/(n+1.);
         const Complex expected=2./(1.+n)*2.*n/(n+1.)*p/(1.-r*r*p*p)*std::exp(Complex(0,k*(1-.013)));
         near(result.field_at({0,0,1})[0],expected,2e-12,"Coherent slab phase/refraction incorrect");
+        const auto response=result.impulse_response({0,0,1});
+        check(response.taps.size()>1,"Slab impulse response must resolve internal echoes");
+        near(response.taps[0].delay*c0,1-.013+n.real()*.013,1e-12,"Slab optical delay incorrect");
+        near(frequency_response(response),expected,2e-12,"Slab taps must retain coherent phase");
         const auto budget=result.power_balance(); double accounted=0;
         for (const auto &[name,power] : budget) if (name!="launched") accounted+=power;
         near(accounted,result.launchedPower,1e-12,"Branch power budget does not close");

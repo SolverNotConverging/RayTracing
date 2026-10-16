@@ -155,6 +155,8 @@ void bind_beam(py::module_ &root) {
             .def_readonly("absorbed_power", &Simulation::absorbedPower)
             .def_readonly("interface_flux_residual", &Simulation::interfaceFluxResidual)
             .def("field_at", &Simulation::field_at, "point"_a, py::call_guard<py::gil_scoped_release>())
+            .def("impulse_response", &Simulation::impulse_response, "point"_a, "analyzer"_a = Vec3C::UnitX(),
+                 "delay_tolerance"_a = 1e-13, py::call_guard<py::gil_scoped_release>())
             .def("fields_at", [](const Simulation &s, const Points &points) {
                 py::gil_scoped_release release;
                 Fields values(points.rows(), 3);
