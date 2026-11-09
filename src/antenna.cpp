@@ -139,7 +139,9 @@ namespace rt {
         double sinc(double x) { return std::abs(x) < 1e-8 ? 1 - x * x / 6 : std::sin(x) / x; }
 
         Vec3C isotropic_vector(const Vec3 &d, Polarization polarization) {
-            const double theta = std::acos(std::clamp(d.z(), -1.0, 1.0)), phi = std::atan2(d.y(), d.x());
+            // Retain small transverse components when d.z() rounds to +/-1.
+            const double theta = std::atan2(std::hypot(d.x(), d.y()), d.z()),
+                         phi = std::atan2(d.y(), d.x());
             const Vec3C et = theta_hat(theta, phi).cast<Complex>(), ep = phi_hat(phi).cast<Complex>();
             switch (polarization) {
                 case Polarization::Vertical: return et;

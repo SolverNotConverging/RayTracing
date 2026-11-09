@@ -47,6 +47,15 @@ int main() try {
   std::filesystem::create_directories(folder);
   Antenna iso = Isotropic{};
   iso.validate(77e9);
+  for (const double zSign : {-1., 1.}) {
+    for (const double epsilon : {1e-6, 1e-8, 3e-9, 1e-9, 1e-12}) {
+      const Vec3 direction = Vec3(epsilon, 0., zSign).normalized();
+      const auto field = iso.farfield(direction, 77e9);
+      check(std::abs(direction.cast<Complex>().dot(field)) < 1e-14,
+            "Isotropic pole field lost transversality");
+      near(field.norm(), 1., "Isotropic pole field lost unit amplitude", 1e-14);
+    }
+  }
   near(iso.farfield(Vec3::UnitX(), 77e9).norm(), 1,
        "Isotropic amplitude incorrect");
   Antenna small = ShortDipole{1e-4, 1};
