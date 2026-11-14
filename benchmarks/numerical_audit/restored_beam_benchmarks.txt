@@ -1,0 +1,23 @@
+PASS: Gaussian complex field across waist: 5.865e-14
+PASS: Gaussian receiver quadrature: 3.179e-05
+PASS: Gaussian quadrature error reduction: 0.000222
+PASS: Slab coherent amplitude eps=(4+0j): 4.344e-15
+PASS: Slab convergence eps=(4+0j): 3.91e-14
+PASS: Slab coherent amplitude eps=(4+0.02j): 4.314e-15
+PASS: Slab convergence eps=(4+0.02j): 3.99e-14
+PASS: Slab branch energy accounting: 3.268e-16
+PASS: Finite Gaussian slab coherent transmission: 4.176e-15
+PASS: Pruning convergence: 4.344e-15
+PASS: Fresnel angle sweep: 3.886e-16
+PASS: Snell refraction: 5.551e-17
+PASS: Lossless R+T: 6.661e-16
+PASS: Concave mirror complex field and Gouy phase: 1.143e-13
+PASS: Concave mirror beam width: 5.551e-17
+PASS: Oblique spherical mirror astigmatism: 4.441e-16
+PASS: Repeated spherical/cylindrical Gaussian focus complex field: 1.041e-15
+PASS: Repeated spherical/cylindrical Gaussian focus widths: 3.997e-15
+PASS: Gaussian curved refraction complex field: 8.509e-14
+PASS: Gaussian curved refraction width: 4.163e-17
+PASS: Homogeneous absorption and phase: 1.57e-16
+PASS: Gaussian beamlet spatial convergence: 2.629e-09
+PASS: Gaussian beamlet error reduction: 1.273e-09

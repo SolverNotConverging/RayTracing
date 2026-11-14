@@ -86,6 +86,11 @@ for (const auto &tap: result.impulseResponse.taps) std::cout << tap.delay << ' '
 `<raytracing/raytracing.hpp>` includes everything. See [examples](examples) for complete
 C++ and Python programs.
 
+## Benchmarks
+
+See the [numerical benchmark guide](benchmarks/README.md) for tested geometries,
+VTK illustrations, analytical references, reproduction commands and saved outputs.
+
 ## Model notes
 
 - **Materials** are `dielectric(epsilon, conductivity, mu)`, `conductor(conductivity)` or `pec()`.

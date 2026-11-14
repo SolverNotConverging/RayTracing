@@ -1,0 +1,27 @@
+Test project C:/Users/Traveler/PycharmProjects/RayTracing/build/numerical_audit/native
+      Start  1: geometry
+ 1/11 Test  #1: geometry .........................   Passed    0.01 sec
+      Start  2: material
+ 2/11 Test  #2: material .........................   Passed    0.01 sec
+      Start  3: sequence
+ 3/11 Test  #3: sequence .........................   Passed    0.01 sec
+      Start  4: refinement
+ 4/11 Test  #4: refinement .......................   Passed    0.01 sec
+      Start  5: field
+ 5/11 Test  #5: field ............................   Passed    0.01 sec
+      Start  6: antenna
+ 6/11 Test  #6: antenna ..........................   Passed    0.04 sec
+      Start  7: cylinder_return
+ 7/11 Test  #7: cylinder_return ..................   Passed    0.24 sec
+      Start  8: beam
+ 8/11 Test  #8: beam .............................   Passed    0.01 sec
+      Start  9: spreading
+ 9/11 Test  #9: spreading ........................   Passed    0.03 sec
+      Start 10: example_multipath
+10/11 Test #10: example_multipath ................   Passed    0.01 sec
+      Start 11: example_gaussian_beam
+11/11 Test #11: example_gaussian_beam ............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 11
+
+Total Test time (real) =   0.39 sec

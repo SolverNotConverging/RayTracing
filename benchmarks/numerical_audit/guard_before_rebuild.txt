@@ -1,0 +1,481 @@
+FFFFFFFFFFFFFFF.FF..                                                     [100%]
+================================== FAILURES ===================================
+_ test_point_solver_rejects_invalid_numerical_controls[None-delay_tolerance-inf] _
+
+group = None, attribute = 'delay_tolerance', value = inf
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[refinement-max_iterations--1] _
+
+group = 'refinement', attribute = 'max_iterations', value = -1
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[refinement-max_backtracks--1] _
+
+group = 'refinement', attribute = 'max_backtracks', value = -1
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[refinement-max_direction_step-0] _
+
+group = 'refinement', attribute = 'max_direction_step', value = 0
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[refinement-max_direction_step-inf] _
+
+group = 'refinement', attribute = 'max_direction_step', value = inf
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+__ test_point_solver_rejects_invalid_numerical_controls[refinement-t_min--1] __
+
+group = 'refinement', attribute = 't_min', value = -1
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[refinement-t_min-nan] __
+
+group = 'refinement', attribute = 't_min', value = nan
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-max_step_halvings--1] _
+
+group = 'spreading', attribute = 'max_step_halvings', value = -1
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-relative_derivative_tolerance-0] _
+
+group = 'spreading', attribute = 'relative_derivative_tolerance', value = 0
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-relative_derivative_tolerance-nan] _
+
+group = 'spreading', attribute = 'relative_derivative_tolerance', value = nan
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-absolute_derivative_tolerance-inf] _
+
+group = 'spreading', attribute = 'absolute_derivative_tolerance', value = inf
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-minimum_singular_value-0] _
+
+group = 'spreading', attribute = 'minimum_singular_value', value = 0
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-minimum_singular_value_ratio-0] _
+
+group = 'spreading', attribute = 'minimum_singular_value_ratio', value = 0
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[spreading-minimum_singular_value_ratio-1] _
+
+group = 'spreading', attribute = 'minimum_singular_value_ratio', value = 1
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+_ test_point_solver_rejects_invalid_numerical_controls[deduplication-angle_tolerance-3.151592653589793] _
+
+group = 'deduplication', attribute = 'angle_tolerance'
+value = 3.151592653589793
+
+    @pytest.mark.parametrize("group,attribute,value", [
+        (None,"delay_tolerance",np.inf),
+        ("refinement","max_iterations",-1),
+        ("refinement","max_backtracks",-1),
+        ("refinement","max_direction_step",0),
+        ("refinement","max_direction_step",np.inf),
+        ("refinement","t_min",-1),
+        ("refinement","t_min",np.nan),
+        ("spreading","max_step_halvings",-1),
+        ("spreading","relative_derivative_tolerance",0),
+        ("spreading","relative_derivative_tolerance",np.nan),
+        ("spreading","absolute_derivative_tolerance",np.inf),
+        ("spreading","minimum_singular_value",0),
+        ("spreading","minimum_singular_value_ratio",0),
+        ("spreading","minimum_singular_value_ratio",1),
+        ("deduplication","angle_tolerance",np.pi+.01),
+    ])
+    def test_point_solver_rejects_invalid_numerical_controls(group,attribute,value):
+        config=rt.SolverConfig(ray_count=8,max_reflections=0,max_distance=2)
+        setattr(config if group is None else getattr(config,group),attribute,value)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:28: Failed
+______ test_beam_solver_enforces_the_supported_weak_loss_range[0.010001] ______
+
+limit = 0.010001
+
+    @pytest.mark.parametrize("limit", [-.01,.010001,np.inf,np.nan])
+    def test_beam_solver_enforces_the_supported_weak_loss_range(limit):
+        config=beam.SolverConfig(frequency_hz=10e9,max_distance=1,max_loss_ratio=limit)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:35: Failed
+________ test_beam_solver_enforces_the_supported_weak_loss_range[inf] _________
+
+limit = inf
+
+    @pytest.mark.parametrize("limit", [-.01,.010001,np.inf,np.nan])
+    def test_beam_solver_enforces_the_supported_weak_loss_range(limit):
+        config=beam.SolverConfig(frequency_hz=10e9,max_distance=1,max_loss_ratio=limit)
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\python\test_solver_option_validation.py:35: Failed
+=========================== short test summary info ===========================
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[None-delay_tolerance-inf]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[refinement-max_iterations--1]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[refinement-max_backtracks--1]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[refinement-max_direction_step-0]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[refinement-max_direction_step-inf]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[refinement-t_min--1]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[refinement-t_min-nan]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-max_step_halvings--1]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-relative_derivative_tolerance-0]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-relative_derivative_tolerance-nan]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-absolute_derivative_tolerance-inf]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-minimum_singular_value-0]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-minimum_singular_value_ratio-0]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[spreading-minimum_singular_value_ratio-1]
+FAILED tests/python/test_solver_option_validation.py::test_point_solver_rejects_invalid_numerical_controls[deduplication-angle_tolerance-3.151592653589793]
+FAILED tests/python/test_solver_option_validation.py::test_beam_solver_enforces_the_supported_weak_loss_range[0.010001]
+FAILED tests/python/test_solver_option_validation.py::test_beam_solver_enforces_the_supported_weak_loss_range[inf]
+17 failed, 3 passed in 0.19s

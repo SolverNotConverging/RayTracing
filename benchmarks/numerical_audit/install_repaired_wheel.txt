@@ -1,0 +1,6 @@
+Resolved 1 package in 3ms
+Prepared 1 package in 17ms
+Uninstalled 1 package in 3ms
+Installed 1 package in 7ms
+ - raytracing==1.0.0 (from file:///C:/Users/Traveler/PycharmProjects/RayTracing)
+ + raytracing==1.0.0 (from file:///C:/Users/Traveler/PycharmProjects/RayTracing/build/numerical_audit/dist/raytracing-1.0.0-cp314-cp314-win_amd64.whl)

@@ -1,7 +1,8 @@
 """Analytical validation and convergence of the public native beam solver.
 
 Run: python benchmarks/beam_transport.py
-All CSVs, figures and a machine-readable pass/fail summary go to build/numerical_audit/beams by default.
+All CSVs, figures and a machine-readable pass/fail summary go to
+benchmarks/numerical_audit/beams by default.
 References are independent normal-incidence slab sums, Gaussian solutions and
 paraxial mirror/interface ABCD laws, not calls back into solver coefficients.
 """
@@ -313,5 +314,5 @@ def run(destination):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=Path(__file__).resolve().parents[1]/'build'/'numerical_audit'/'beams')
+    parser.add_argument('--output',type=Path,default=Path(__file__).resolve().parent/'numerical_audit'/'beams')
     run(parser.parse_args().output)

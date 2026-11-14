@@ -1,0 +1,28 @@
+[1/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\Surface.cpp for CXX dependencies
+[2/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\Material.cpp for CXX dependencies
+[3/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\Tracing.cpp for CXX dependencies
+[4/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\SequenceEvaluator.cpp for CXX dependencies
+[5/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\PathRefinement.cpp for CXX dependencies
+[6/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\Spreading.cpp for CXX dependencies
+[7/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\FieldReconstruction.cpp for CXX dependencies
+[8/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\ImpulseResponse.cpp for CXX dependencies
+[9/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\Antenna.cpp for CXX dependencies
+[10/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\Solver.cpp for CXX dependencies
+[11/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\RayTracing\src\BeamSolver.cpp for CXX dependencies
+[12/28] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\build\numerical_audit\previous\benchmarks\SpreadingBenchmarks.cpp for CXX dependencies
+[13/28] Generating CXX dyndep file RayTracing\CMakeFiles\RayTracingCore.dir\CXX.dd
+[14/28] Generating CXX dyndep file CMakeFiles\SpreadingBenchmarks.dir\CXX.dd
+[15/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\Surface.cpp.obj
+[16/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\Material.cpp.obj
+[17/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\Tracing.cpp.obj
+[18/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\SequenceEvaluator.cpp.obj
+[19/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\Spreading.cpp.obj
+[20/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\PathRefinement.cpp.obj
+[21/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\FieldReconstruction.cpp.obj
+[22/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\ImpulseResponse.cpp.obj
+[23/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\Solver.cpp.obj
+[24/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\Antenna.cpp.obj
+[25/28] Building CXX object CMakeFiles\SpreadingBenchmarks.dir\benchmarks\SpreadingBenchmarks.cpp.obj
+[26/28] Building CXX object RayTracing\CMakeFiles\RayTracingCore.dir\src\BeamSolver.cpp.obj
+[27/28] Linking CXX static library RayTracing\RayTracingCore.lib
+[28/28] Linking CXX executable SpreadingBenchmarks.exe

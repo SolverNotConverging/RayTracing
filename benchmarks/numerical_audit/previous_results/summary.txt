@@ -1,0 +1,3 @@
+Passed 2716 analytical and diagnostic checks.
+Maximum relative error: 1.850745223e-06
+Convergence error ratio on halving h: 4.054984891

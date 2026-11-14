@@ -1,0 +1,12 @@
+Caustic mirror checks: 1440; maximum complex error 8.78616e-07
+direct: maximum relative error 6.68016e-12
+plane: maximum relative error 2.12056e-12
+sphere_normal: maximum relative error 4.71436e-08
+cylinder_normal: maximum relative error 2.38048e-08
+sphere_oblique_45deg: maximum relative error 6.6618e-08
+sphere_oblique_70deg: maximum relative error 5.94427e-07
+cylinder_oblique_45deg: maximum relative error 5.97636e-08
+sphere_concave: maximum relative error 3.98438e-08
+two_planes: maximum relative error 2.78288e-12
+two_spheres: maximum relative error 1.85075e-06
+Passed 2716 checks; maximum relative error 1.85075e-06; convergence ratio 4.05498

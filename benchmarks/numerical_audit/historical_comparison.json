@@ -1,0 +1,14 @@
+{
+  "spreading.csv": {
+    "rows": 610,
+    "max_scaled_difference": 0.0
+  },
+  "caustics.csv": {
+    "rows": 720,
+    "max_scaled_difference": 0.0
+  },
+  "convergence.csv": {
+    "rows": 10,
+    "max_scaled_difference": 0.0
+  }
+}

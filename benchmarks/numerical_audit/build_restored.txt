@@ -1,0 +1,19 @@
+[0/1] Re-running CMake...
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Traveler/PycharmProjects/RayTracing/build/numerical_audit/native
+[1/47] Generating CXX dyndep file CMakeFiles\raytracing.dir\CXX.dd
+[2/36] Generating CXX dyndep file tests\cpp\CMakeFiles\test_geometry.dir\CXX.dd
+[3/34] Generating CXX dyndep file tests\cpp\CMakeFiles\test_material.dir\CXX.dd
+[4/32] Generating CXX dyndep file tests\cpp\CMakeFiles\test_sequence.dir\CXX.dd
+[5/30] Generating CXX dyndep file tests\cpp\CMakeFiles\test_refinement.dir\CXX.dd
+[6/28] Generating CXX dyndep file tests\cpp\CMakeFiles\test_field.dir\CXX.dd
+[7/26] Generating CXX dyndep file tests\cpp\CMakeFiles\test_antenna.dir\CXX.dd
+[8/24] Generating CXX dyndep file tests\cpp\CMakeFiles\test_cylinder_return.dir\CXX.dd
+[9/22] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\tests\cpp\test_spreading.cpp for CXX dependencies
+[10/22] Generating CXX dyndep file tests\cpp\CMakeFiles\test_beam.dir\CXX.dd
+[11/20] Generating CXX dyndep file tests\cpp\CMakeFiles\test_spreading.dir\CXX.dd
+[12/20] Generating CXX dyndep file examples\cpp\CMakeFiles\multipath.dir\CXX.dd
+[13/18] Generating CXX dyndep file examples\cpp\CMakeFiles\gaussian_beam.dir\CXX.dd
+[14/16] Building CXX object tests\cpp\CMakeFiles\test_spreading.dir\test_spreading.cpp.obj
+[15/16] Linking CXX executable tests\cpp\test_spreading.exe

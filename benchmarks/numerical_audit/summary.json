@@ -1,0 +1,13 @@
+{
+  "current_commit": "2fc8e362f8e1cb4d13744b498605177888cc267d",
+  "historical_commit": "f6f69fb",
+  "beam_analytical_checks": 23,
+  "point_analytical_diagnostic_checks": 2716,
+  "pre_post_identical_rows": 1340,
+  "native_ctest_targets": 11,
+  "python_numerical_tests": 35,
+  "viewer_tests_excluded": 2,
+  "pre_fix_regressions_failed": 17,
+  "installed_wheel": "raytracing-1.0.0-cp314-cp314-win_amd64.whl",
+  "solver_changed": "public option validation only; valid-input numerical formulas preserved"
+}

@@ -1,12 +1,13 @@
-"""Summarize native and Python RayTracing CPU numerical audit evidence."""
+"""Rebuild the historical cleanup audit report from the retained evidence.
+
+This report describes the October 2026 cleanup, not a new full test-suite run.
+See README.md for current benchmark commands and output descriptions.
+"""
 from pathlib import Path
-import csv
 import html
 import json
-import subprocess
 
-ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'build/numerical_audit'
+OUT=Path(__file__).resolve().parent/'numerical_audit'
 beam=json.loads((OUT/'beams/summary.json').read_text())
 comparison=json.loads((OUT/'historical_comparison.json').read_text())
 assert beam['passed'] and len(beam['checks'])==23
@@ -15,19 +16,13 @@ assert '100% tests passed' in (OUT/'final_ctest.txt').read_text()
 assert '35 passed' in (OUT/'installed_final_tests.txt').read_text()
 assert '17 failed, 3 passed' in (OUT/'guard_before_rebuild.txt').read_text()
 assert json.loads((OUT/'no_viz/summary.json').read_text())['passed']
-spreading=OUT/'native/tests/cpp/analytical-spreading'
 table=''.join(f"<tr><td>{html.escape(check['name'])}</td><td>{check['max_error']:.4g}</td><td>{check['tolerance']:.4g}</td><td>Pass</td></tr>" for check in beam['checks'])
 history_table=''.join(f"<tr><td>{html.escape(name)}</td><td>{case['rows']}</td><td>{case['max_scaled_difference']}</td></tr>" for name,case in comparison.items())
-record=dict(current_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-            historical_commit='f6f69fb',beam_analytical_checks=len(beam['checks']),
-            point_analytical_diagnostic_checks=2716,pre_post_identical_rows=sum(c['rows'] for c in comparison.values()),
-            native_ctest_targets=11,python_numerical_tests=35,viewer_tests_excluded=2,
-            pre_fix_regressions_failed=17,installed_wheel='raytracing-1.0.0-cp314-cp314-win_amd64.whl',
-            solver_changed='public option validation only; valid-input numerical formulas preserved')
-(OUT/'summary.json').write_text(json.dumps(record,indent=2))
+# Keep summary.json unchanged: it records the original audit's provenance.
 report=f'''<!doctype html><meta charset="utf-8"><title>RayTracing CPU numerical cleanup audit</title>
 <style>body{{font:16px/1.55 system-ui;max-width:1100px;margin:40px auto;padding:0 24px;color:#1b3144}}h1,h2{{line-height:1.2}}table{{border-collapse:collapse;width:100%;font-size:14px}}td,th{{padding:9px;border-bottom:1px solid #d6dfe5;text-align:left}}img{{width:100%}}code{{background:#edf2f6;padding:2px 5px}}.pass{{color:#08734f}}</style>
 <h1>RayTracing: CPU numerical cleanup audit</h1><p>2026-10-16 · HEAD 4cbba43 plus validation repair · pre-cleanup reference f6f69fb</p>
+<p>This is the historical cleanup audit. Full-suite counts and comparison logs refer to that run. The beam table below uses the currently saved beam results, generated {html.escape(beam['utc'])}. See <a href="../README.md">the benchmark guide</a> for current reproduction instructions.</p>
 <p class="pass"><b>All checked numerical results pass after repairing public option validation.</b></p>
 <p>Both point-ray multipath and Gaussian-beam transport were tested. Current C++ and Python extension code was rebuilt with MSVC in Release mode. The validated repaired wheel was installed into the repository's existing .venv and tested there. The numerical run used no CUDA. Two viewer-only tests were excluded.</p>
 <h2>Cleanup regression found and fixed</h2><p>The cleanup moved validation out of low-level kernels, but failed to transfer every guard to the public solver boundary. Valid physical inputs still reproduced the analytical references. Invalid controls could silently discard paths or accept approximation settings outside the supported numerical model.</p>
@@ -47,7 +42,7 @@ report=f'''<!doctype html><meta charset="utf-8"><title>RayTracing CPU numerical 
 <img src="beams/convergence.png" alt="Gaussian quadrature, slab branch-depth and beamlet convergence">
 <table><tr><th>Analytical check</th><th>Maximum error</th><th>Limit</th><th>Result</th></tr>{table}</table>
 <h2>Scope and conventions</h2><p>This project uses exp(−iωt), unlike FEM/FDFD's positive-time convention. Passive ε and n therefore have positive imaginary parts; exp(+iknr) decays. Point rays require a lossless homogeneous background and use reflecting half-space surfaces. Beams use paraxial, weak-loss, whole-beam interactions. Edge diffraction and aperture clipping are not modeled; geometric-optics amplitudes at point receiver caustics remain intentionally unavailable. The tests respect these model assumptions.</p>
-<h2>Reproduce and inspect</h2><p>Configure a Release C++ build with Eigen3, run <code>cmake --build ...</code> and <code>ctest --test-dir ... --output-on-failure</code>. Build/install the current wheel before Python tests. Run <code>pytest tests/python -k 'not views_render'</code> and <code>python benchmarks/beam_transport.py</code>. Fresh build/test logs and the pre-cleanup source snapshot are retained beside this report.</p>
-<p><a href="final_ctest.txt">Native test log</a> · <a href="installed_final_tests.txt">Installed-wheel Python tests</a> · <a href="guard_before_rebuild.txt">Pre-fix failing regressions</a> · <a href="historical_comparison.json">Old/new comparison</a> · <a href="native/tests/cpp/analytical-spreading/summary.txt">Point reference summary</a> · <a href="beams/summary.json">Beam reference data</a> · <a href="summary.json">Audit summary</a></p>'''
+<h2>Reproduce and inspect</h2><p>Configure a Release C++ build with Eigen3, run <code>cmake --build ...</code> and <code>ctest --test-dir ... --output-on-failure</code>. Build/install the current wheel before Python tests. Run <code>pytest tests/python -k 'not views_render'</code> and <code>python benchmarks/beam_transport.py</code>. The original build/test logs and pre-cleanup CSV results are retained beside this report.</p>
+<p><a href="final_ctest.txt">Native test log</a> · <a href="installed_final_tests.txt">Installed-wheel Python tests</a> · <a href="guard_before_rebuild.txt">Pre-fix failing regressions</a> · <a href="historical_comparison.json">Old/new comparison</a> · <a href="spreading/summary.txt">Point reference summary</a> · <a href="beams/summary.json">Beam reference data</a> · <a href="summary.json">Audit summary</a></p>'''
 (OUT/'report.html').write_text(report,encoding='utf-8')
 print('Numerical audit passed:',OUT/'report.html')

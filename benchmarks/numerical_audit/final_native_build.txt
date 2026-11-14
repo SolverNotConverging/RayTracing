@@ -1,0 +1,17 @@
+[1/25] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\solver.cpp for CXX dependencies
+[2/25] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\beam.cpp for CXX dependencies
+[3/25] Generating CXX dyndep file CMakeFiles\raytracing.dir\CXX.dd
+[4/17] Building CXX object CMakeFiles\raytracing.dir\src\solver.cpp.obj
+[5/17] Building CXX object CMakeFiles\raytracing.dir\src\beam.cpp.obj
+[6/17] Linking CXX static library raytracing.lib
+[7/17] Linking CXX executable tests\cpp\test_geometry.exe
+[8/17] Linking CXX executable tests\cpp\test_material.exe
+[9/17] Linking CXX executable tests\cpp\test_sequence.exe
+[10/17] Linking CXX executable tests\cpp\test_refinement.exe
+[11/17] Linking CXX executable tests\cpp\test_field.exe
+[12/17] Linking CXX executable tests\cpp\test_antenna.exe
+[13/17] Linking CXX executable tests\cpp\test_cylinder_return.exe
+[14/17] Linking CXX executable tests\cpp\test_beam.exe
+[15/17] Linking CXX executable tests\cpp\test_spreading.exe
+[16/17] Linking CXX executable examples\cpp\multipath.exe
+[17/17] Linking CXX executable examples\cpp\gaussian_beam.exe

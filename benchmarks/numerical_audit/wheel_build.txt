@@ -1,0 +1,57 @@
+Building wheel...
+*** scikit-build-core 1.1.1 using CMake 4.2.3 (wheel)
+*** Configuring CMake...
+loading initial cache file build\cp314-cp314-win_amd64\CMakeInit.txt
+-- Building for: Ninja
+-- The CXX compiler identification is MSVC 19.51.36246.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/18/BuildTools/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found Python: C:/Users/Traveler/AppData/Local/uv/cache/builds-v0/.tmpV9Ycvj/Scripts/python.exe (found suitable version "3.14.5", minimum required is "3.14") found components: Interpreter Development.Module
+-- Performing Test HAS_MSVC_GL_LTCG
+-- Performing Test HAS_MSVC_GL_LTCG - Success
+-- Found pybind11: C:/Users/Traveler/AppData/Local/uv/cache/builds-v0/.tmpV9Ycvj/Lib/site-packages/pybind11/include (found version "3.1.0")
+-- Configuring done (1.9s)
+-- Generating done (0.0s)
+-- Build files have been written to: C:/Users/Traveler/PycharmProjects/RayTracing/build/cp314-cp314-win_amd64
+*** Building project with Ninja...
+[1/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\material.cpp for CXX dependencies
+[2/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\spreading.cpp for CXX dependencies
+[3/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\sequence.cpp for CXX dependencies
+[4/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\refinement.cpp for CXX dependencies
+[5/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\tracing.cpp for CXX dependencies
+[6/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\geometry.cpp for CXX dependencies
+[7/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\field.cpp for CXX dependencies
+[8/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\antenna.cpp for CXX dependencies
+[9/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\beam.cpp for CXX dependencies
+[10/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\src\solver.cpp for CXX dependencies
+[11/32] Generating CXX dyndep file CMakeFiles\raytracing.dir\CXX.dd
+[12/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\python\bindings\point_ray.cpp for CXX dependencies
+[13/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\python\bindings\common.cpp for CXX dependencies
+[14/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\python\bindings\beam.cpp for CXX dependencies
+[15/32] Scanning C:\Users\Traveler\PycharmProjects\RayTracing\python\bindings\module.cpp for CXX dependencies
+[16/32] Generating CXX dyndep file python\CMakeFiles\_core.dir\CXX.dd
+[17/32] Building CXX object CMakeFiles\raytracing.dir\src\tracing.cpp.obj
+[18/32] Building CXX object CMakeFiles\raytracing.dir\src\sequence.cpp.obj
+[19/32] Building CXX object CMakeFiles\raytracing.dir\src\field.cpp.obj
+[20/32] Building CXX object CMakeFiles\raytracing.dir\src\material.cpp.obj
+[21/32] Building CXX object CMakeFiles\raytracing.dir\src\solver.cpp.obj
+[22/32] Building CXX object python\CMakeFiles\_core.dir\bindings\module.cpp.obj
+[23/32] Building CXX object CMakeFiles\raytracing.dir\src\geometry.cpp.obj
+[24/32] Building CXX object CMakeFiles\raytracing.dir\src\spreading.cpp.obj
+[25/32] Building CXX object CMakeFiles\raytracing.dir\src\antenna.cpp.obj
+[26/32] Building CXX object CMakeFiles\raytracing.dir\src\refinement.cpp.obj
+[27/32] Building CXX object python\CMakeFiles\_core.dir\bindings\common.cpp.obj
+[28/32] Building CXX object python\CMakeFiles\_core.dir\bindings\point_ray.cpp.obj
+[29/32] Building CXX object python\CMakeFiles\_core.dir\bindings\beam.cpp.obj
+[30/32] Building CXX object CMakeFiles\raytracing.dir\src\beam.cpp.obj
+[31/32] Linking CXX static library raytracing.lib
+[32/32] Linking CXX shared module python\_core.cp314-win_amd64.pyd
+*** Installing project into wheel...
+-- Install configuration: "Release"
+-- Installing: C:\Users\Traveler\AppData\Local\Temp\tmpsjftanoe\wheel\platlib/raytracing/_core.cp314-win_amd64.pyd
+*** Making wheel...
+*** Created raytracing-1.0.0-cp314-cp314-win_amd64.whl
+Successfully built build\numerical_audit\dist\raytracing-1.0.0-cp314-cp314-win_amd64.whl

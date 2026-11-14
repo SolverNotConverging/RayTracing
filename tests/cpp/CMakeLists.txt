@@ -2,5 +2,10 @@ foreach (name IN ITEMS geometry material sequence refinement field antenna cylin
     add_executable(test_${name} test_${name}.cpp)
     target_link_libraries(test_${name} PRIVATE RayTracing::RayTracing)
     target_compile_definitions(test_${name} PRIVATE TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/../data")
-    add_test(NAME ${name} COMMAND test_${name})
+    if (name STREQUAL "spreading")
+        add_test(NAME ${name} COMMAND test_${name}
+                "${PROJECT_SOURCE_DIR}/benchmarks/numerical_audit/spreading")
+    else ()
+        add_test(NAME ${name} COMMAND test_${name})
+    endif ()
 endforeach ()
