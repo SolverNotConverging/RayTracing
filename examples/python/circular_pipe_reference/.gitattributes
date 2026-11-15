@@ -1,2 +1,2 @@
-# Preserve the exact archived CSV bytes used by the reference checksums.
-*.csv -text
+# Preserve archived CSV bytes and accept their CRLF record endings.
+*.csv -text whitespace=cr-at-eol
