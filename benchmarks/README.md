@@ -151,3 +151,21 @@ All tests use SI units and the `exp(-i omega t)` convention. Gaussian transport
 assumes paraxial beams, isotropic homogeneous regions and weak loss. Edge diffraction
 and aperture clipping are outside this model; geometrical-optics fields at exact
 point-ray caustics are undefined and are rejected by the diagnostic checks.
+
+
+## Circular-pipe manuscript examples
+
+The [circular-pipe guide](../examples/python/CIRCULAR_PIPE.md) provides an
+interactive case-B scene and a numerical runner for thirteen PEC pipe
+configurations. The numerical examples cover depths from 2 to 40 m and offsets
+from 0.02 to 0.3 m at 77 GHz. The solver intersects analytical cylinder and disk
+surfaces, discovers paths by unseeded shooting, refines them to the receiver,
+and computes coherent fields with spreading and caustic phase.
+
+Run `python examples/python/circular_pipe_validation.py --all --verify` from the
+repository root. This recomputes SBR fields against frozen analytical reference
+CSVs, then checks doubled launch counts and increased reflection limits. The
+[reference provenance](../examples/python/circular_pipe_reference/cases.json)
+and [fresh verification summary](../examples/python/circular_pipe_reference/validation_summary.json)
+separate the original manuscript data from the example rerun. This supplements
+the independent analytical mirror and interface benchmarks above.

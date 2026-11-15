@@ -55,6 +55,18 @@ reaching the point, projected onto `analyzer` (default x); the tap fields sum to
 `viz` extra (Matplotlib, PyVista). Results expose NumPy arrays, so save what you need with
 `numpy.savez`.
 
+### Circular-pipe radar example
+
+The [circular-pipe examples](examples/python/CIRCULAR_PIPE.md) include manuscript case B, which reproduces a 77 GHz,
+1 m diameter PEC pipe with a 5 m reflector distance and a 0.3 m radar offset.
+Its linked VTK view shows the antenna frame, far-field magnitude and polarization,
+returned rays, and coherent impulse response. Run
+`python examples/python/circular_pipe.py --verify`; add `--no-show` to export
+figures, complex taps and VTK geometry without opening a window.
+A numerical runner covers all thirteen manuscript configurations, compares fresh SBR
+fields with the archived analytical references, and checks launch/reflection convergence:
+`python examples/python/circular_pipe_validation.py --all --verify`.
+
 ## C++
 
 ```bash

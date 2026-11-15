@@ -1,0 +1,49 @@
+{
+  "case": "B",
+  "frequency_hz": 77000000000.0,
+  "radius_m": 0.5,
+  "depth_m": 5.0,
+  "offset_m": 0.3,
+  "orientation_local_to_world": [
+    [
+      0.0,
+      0.0,
+      1.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      -1.0,
+      0.0,
+      0.0
+    ]
+  ],
+  "ray_count": 8000,
+  "max_reflections": 9,
+  "reception_radius_m": 0.24,
+  "path_length_window_m": [
+    10.0,
+    12.5
+  ],
+  "directed_paths": 41,
+  "delay_groups": 16,
+  "verification": {
+    "16000_launches": {
+      "paths": 41,
+      "max_length_error_m": 5.329070518200751e-15,
+      "max_relative_complex_error": 1.3601666562528491e-11
+    },
+    "11_reflections": {
+      "paths": 41,
+      "max_length_error_m": 0.0,
+      "max_relative_complex_error": 0.0
+    }
+  },
+  "raytracing_version": "1.0.1",
+  "python": "3.14.5",
+  "phasor_convention": "native exp(-i omega t); conjugate coefficients for manuscript",
+  "script_sha256": "32783b53462ffe0d780377ee51792b5182c183b9d05cf9e3ddde89f22b4aef58"
+}
