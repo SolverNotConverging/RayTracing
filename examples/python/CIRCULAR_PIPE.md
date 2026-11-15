@@ -1,10 +1,10 @@
 # Circular-pipe radar examples
 
-The reproduction files are maintained on the `codex/manuscript-pipe-examples`
+The reproduction files are maintained on the `reproduce`
 branch. Clone that branch before following the commands below:
 
 ```sh
-git clone --branch codex/manuscript-pipe-examples https://github.com/SolverNotConverging/RayTracing.git
+git clone --branch reproduce https://github.com/SolverNotConverging/RayTracing.git
 cd RayTracing
 ```
 
