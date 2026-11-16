@@ -1,4 +1,4 @@
-"""Manuscript case B: PEC pipe, antenna frame, returned rays and coherent CIR.
+"""Manuscript case A: PEC pipe, antenna frame, returned rays and coherent CIR.
 
 Install RayTracing with its viz extra, then run this file with --verify.
 Use --no-show for reproducible off-screen figures and data exports.
@@ -12,6 +12,8 @@ import platform
 
 import numpy as np
 import raytracing as rt
+from types import SimpleNamespace
+from pec_circular_return import solve_pec_circular_return, fold_vertices
 
 FREQUENCY = 77e9
 RADIUS, DEPTH, OFFSET = 0.5, 5.0, 0.3
@@ -52,17 +54,14 @@ def classify(path):
     return 'Non-periodic', n
 
 
-def calculate(scene, antenna, launches=8000, reflections=9):
-    result = rt.solve(scene, rt.Transmitter(POSITION, antenna), rt.Receiver(POSITION, antenna),
-                      rt.SolverConfig(frequency_hz=FREQUENCY, ray_count=launches,
-                                      max_reflections=reflections,
-                                      max_distance=MAX_LENGTH + .48 * RADIUS,
-                                      reception_radius=.48 * RADIUS))
-    # Same window and smooth-return selection as manuscript case B.
+def calculate(scene, antenna, launches=8000, reflections=8):
+    result = solve_pec_circular_return(rt, DEPTH, RADIUS, OFFSET, FREQUENCY,
+                                      launches, reflections, MAX_LENGTH, .48*RADIUS)
     paths = [p for p in result.paths if p.field is not None
-             and 2 * DEPTH - 1e-10 <= p.field.path_length <= MAX_LENGTH + 1e-10
-             and sum(h.surface_index == 1 for h in p.refinement.geometry.reflections) == 1]
-    return sorted(paths, key=lambda p: (p.field.path_length, *p.refinement.launch_direction))
+             and 2*DEPTH-1e-10 <= p.field.path_length <= MAX_LENGTH+1e-10]
+    folded = [SimpleNamespace(field=p.field, coefficient=p.coefficient,
+                              refinement=p.refinement, vertices=fold_vertices(p.vertices)) for p in paths]
+    return sorted(folded,key=lambda p:(p.field.path_length,*p.refinement.launch_direction))
 
 
 def group_paths(paths):
@@ -78,7 +77,7 @@ def group_paths(paths):
 
 
 def verify_paths(reference, candidate):
-    assert len(reference) == len(candidate) == 41
+    assert len(reference) == len(candidate) == 54
     errors, length_errors, used = [], [], set()
     scale = max(abs(p.coefficient) for p in reference)
     directions = np.array([p.refinement.launch_direction for p in candidate])
@@ -106,7 +105,7 @@ def export_data(paths, groups, output, verification):
                         multiplicity=np.array([len(g['indices']) for g in groups]),
                         frequency_hz=FREQUENCY)
     with (output / 'paths.csv').open('w', newline='') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, lineterminator="\n")
         writer.writerow(['path', 'family', 'wall_reflections', 'length_m', 'delay_ns',
                          'coefficient_real_native', 'coefficient_imag_native', 'caustic_count'])
         for i, path in enumerate(paths):
@@ -115,16 +114,17 @@ def export_data(paths, groups, output, verification):
                              path.coefficient.real, path.coefficient.imag, path.field.caustic_count])
     (output / 'paths.json').write_text(json.dumps([
         dict(index=i, family=classify(p)[0], vertices_m=np.asarray(p.vertices).tolist())
-        for i, p in enumerate(paths)], indent=2) + '\n')
-    manifest = dict(case='B', frequency_hz=FREQUENCY, radius_m=RADIUS, depth_m=DEPTH,
+        for i, p in enumerate(paths)], indent=2) + '\n', encoding='utf-8', newline='\n')
+    manifest = dict(case='A', frequency_hz=FREQUENCY, radius_m=RADIUS, depth_m=DEPTH,
                     offset_m=OFFSET, orientation_local_to_world=ORIENTATION.tolist(),
-                    ray_count=8000, max_reflections=9, reception_radius_m=.48 * RADIUS,
+                    ray_count=8000, max_reflections=8, total_reflection_limit=9, reception_radius_m=.48 * RADIUS,
                     path_length_window_m=[2 * DEPTH, MAX_LENGTH], directed_paths=len(paths),
                     delay_groups=len(groups), verification=verification,
                     raytracing_version=rt.__version__, python=platform.python_version(),
                     phasor_convention='native exp(-i omega t); conjugate coefficients for manuscript',
-                    script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
-    (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+                    script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                    adapter_sha256=hashlib.sha256(Path(__file__).with_name('pec_circular_return.py').read_bytes()).hexdigest())
+    (output / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
 
 
 def pattern_mesh(antenna, center=(0, 0, 0), scale=1.):
@@ -237,7 +237,7 @@ def figures(paths, groups, antenna, output):
         ax.plot(x, y, 'o', color=COLORS[family], ms=3)
     ax.set(xlabel='Apparent range (m)', ylabel='Coherent field\nmagnitude', xlim=(4.97, 6.28),
            ylim=(0, amplitudes.max() * 1.35))
-    ax.set_title('(c) Impulse response: coherent sum of all 41 directed returns', fontsize=8, loc='left')
+    ax.set_title('(c) Impulse response: coherent sum of all 54 directed returns', fontsize=8, loc='left')
     ax.spines[['top', 'right']].set_visible(False)
     ax.grid(axis='y', alpha=.2)
     handles = [Line2D([], [], color=color, label=family, marker='o', ms=3, lw=1)
@@ -267,7 +267,7 @@ def inspect(paths, groups, antenna, show=True):
     """Single VTK window: scene, antenna frame and CIR, linked by a group slider."""
     import pyvista as pv
     plotter = pv.Plotter(shape='1|2', window_size=(1500, 900), off_screen=not show,
-                        title='Circular pipe — manuscript case B')
+                        title='Circular pipe — manuscript case A')
     plotter.set_background('white', all_renderers=True)
     plotter.subplot(0)
     add_pipe(plotter, paths, antenna, groups[0]['indices'], reflector_label='PEC')
@@ -326,11 +326,11 @@ def main():
     args.output.mkdir(parents=True, exist_ok=True)
     scene, antenna = make_case()
     paths = calculate(scene, antenna)
-    assert len(paths) == 41, f'Expected 41 smooth returns in case B; found {len(paths)}'
+    assert len(paths) == 54, f'Expected 54 returns in case A; found {len(paths)}'
     verification = {}
     if args.verify:
-        verification['16000_launches'] = verify_paths(paths, calculate(scene, antenna, 16000, 9))
-        verification['11_reflections'] = verify_paths(paths, calculate(scene, antenna, 8000, 11))
+        verification['16000_launches'] = verify_paths(paths, calculate(scene, antenna, 16000, 8))
+        verification['10_wall_reflections'] = verify_paths(paths, calculate(scene, antenna, 8000, 10))
     groups = group_paths(paths)
     export_data(paths, groups, args.output, verification)
     figures(paths, groups, antenna, args.output)

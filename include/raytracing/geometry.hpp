@@ -27,6 +27,17 @@ namespace rt {
         bool capped = true;
     };
 
+    struct EllipticCylinder {
+        Vec3 center, axis, u; // perpendicular unit axis/u; v = axis x u
+        double radiusU, radiusV, halfLength;
+        bool capped = true;
+    };
+
+    struct Annulus {
+        Vec3 center, normal; // planar ring; unit normal
+        double innerRadius, outerRadius;
+    };
+
     struct Triangle {
         Vec3 a, b, c; // vertex order determines the normal
     };
@@ -37,8 +48,8 @@ namespace rt {
         Eigen::Matrix3d axes = Eigen::Matrix3d::Identity();
     };
 
-    using Surface = std::variant<Rectangle, Disk, Sphere, Cylinder, Triangle>;
-    using Shape = std::variant<Box, Rectangle, Disk, Sphere, Cylinder, Triangle>;
+    using Surface = std::variant<Rectangle, Disk, Sphere, Cylinder, Triangle, EllipticCylinder, Annulus>;
+    using Shape = std::variant<Box, Rectangle, Disk, Sphere, Cylinder, Triangle, EllipticCylinder, Annulus>;
 
     struct Hit {
         double distance;
@@ -74,6 +85,10 @@ namespace rt {
                                  double tMin = 1e-8, double tMax = infinity);
     std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const Triangle &shape,
                                  double tMin = 1e-8, double tMax = infinity);
+    std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const EllipticCylinder &shape,
+                                 double tMin = 1e-8, double tMax = infinity);
+    std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const Annulus &shape,
+                                 double tMin = 1e-8, double tMax = infinity);
     std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const Surface &shape,
                                  double tMin = 1e-8, double tMax = infinity);
 
@@ -85,7 +100,7 @@ namespace rt {
     std::vector<Surface> faces(const Shape &shape);
     // Strict interior test for boxes, spheres and capped cylinders; false for sheets.
     bool contains(const Shape &shape, const Vec3 &point);
-    // Distance from a point on the surface to its nearest edge or rim (infinite for spheres).
+    // Edge/rim distance (infinite for spheres); conservative lower bound on elliptical caps.
     double edge_distance(const Surface &shape, const Vec3 &point);
     // Shape operator dn/dx at a surface point, for the given (either-sided) unit normal.
     Eigen::Matrix3d curvature(const Surface &shape, const Vec3 &point, const Vec3 &normal);

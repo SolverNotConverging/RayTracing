@@ -1,12 +1,13 @@
 {
   "passed": true,
-  "utc": "2026-11-15T17:07:56.374385+00:00",
+  "utc": "2026-11-16T15:26:09.887756+00:00",
   "python": "3.14.5",
   "platform": "Windows-11-10.0.26300-SP0",
   "solver_version": "1.0.1",
-  "solver_binary_sha256": "5f5d608d56fd7b144450bbc3501244ea33794836964875d17535be976bb28399",
-  "script_sha256": "c5c1ada4b90f51edde33475f34e51c03b1642f7ea3accc46572981b85fb6ed76",
-  "reference_catalog_sha256": "235b4ee6867fdd5669ec559a60121e6603ecfb3114580d3493385c3401a3c006",
+  "solver_binary_sha256": "9c10e2c83763c63f9672ccbc4ea4a9cebb1413e9d33fdd8ecda5a5b75bc3d441",
+  "script_sha256": "2e87f4bcbecb32bed4f3095fcaef9062acaca0bdd275127d626c102836b5e533",
+  "adapter_sha256": "4a9df796a078d557dfbb88ef227db94a5c44a462353f62d051e474add47968a3",
+  "reference_catalog_sha256": "25092129963f6da5f385f7683df0b94e861a7055ac30ca5787140d801ebe0f3b",
   "convergence_requested": true,
   "selected_cases": [
     "A",
@@ -20,8 +21,7 @@
     "I",
     "J",
     "K",
-    "L",
-    "M"
+    "L"
   ],
   "comparison": "Fresh SBR solves against frozen analytical fields; no fitted field scale or phase",
   "reference_phasor": "exp(+i omega t)",
@@ -29,106 +29,68 @@
     {
       "case": "A",
       "passed": true,
-      "directed_paths": 9,
-      "max_relative_complex_error": 3.576127778832649e-08,
-      "max_length_error_m": 1.7763568394002505e-15,
-      "solve_seconds": 0.00835189999997965,
+      "directed_paths": 54,
+      "max_relative_complex_error": 2.410947257380319e-07,
+      "max_length_error_m": 5.329070518200751e-15,
+      "solve_seconds": 0.018105499999364838,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 9,
-            "max_relative_complex_error": 3.576072378404951e-08,
-            "max_length_error_m": 1.7763568394002505e-15
+            "directed_paths": 54,
+            "max_relative_complex_error": 2.410947539653285e-07,
+            "max_length_error_m": 5.329070518200751e-15
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 4.738625892576644e-12,
-            "max_length_error_m": 8.881784197001252e-16
+            "max_relative_complex_error": 7.85218090806059e-12,
+            "max_length_error_m": 3.552713678800501e-15
           },
-          "solve_seconds": 0.01752200000009907
+          "solve_seconds": 0.03350200000204495
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 9,
-            "max_relative_complex_error": 3.576127778832649e-08,
-            "max_length_error_m": 1.7763568394002505e-15
+            "directed_paths": 54,
+            "max_relative_complex_error": 2.410947257380319e-07,
+            "max_length_error_m": 5.329070518200751e-15
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 0.011539000000084343
+          "solve_seconds": 0.020143300000199815
         }
       }
     },
     {
       "case": "B",
       "passed": true,
-      "directed_paths": 41,
-      "max_relative_complex_error": 2.4109456533032965e-07,
-      "max_length_error_m": 5.329070518200751e-15,
-      "solve_seconds": 0.07239389999995183,
-      "convergence": {
-        "double_launches": {
-          "analytical_comparison": {
-            "passed": true,
-            "directed_paths": 41,
-            "max_relative_complex_error": 2.410947011687777e-07,
-            "max_length_error_m": 3.552713678800501e-15
-          },
-          "launch_matching": {
-            "passed": true,
-            "max_relative_complex_error": 1.3601666562528491e-11,
-            "max_length_error_m": 5.329070518200751e-15
-          },
-          "solve_seconds": 0.14099639999994906
-        },
-        "extra_reflections": {
-          "analytical_comparison": {
-            "passed": true,
-            "directed_paths": 41,
-            "max_relative_complex_error": 2.4109456533032965e-07,
-            "max_length_error_m": 5.329070518200751e-15
-          },
-          "launch_matching": {
-            "passed": true,
-            "max_relative_complex_error": 0.0,
-            "max_length_error_m": 0.0
-          },
-          "solve_seconds": 0.07965379999996003
-        }
-      }
-    },
-    {
-      "case": "C",
-      "passed": true,
-      "directed_paths": 161,
-      "max_relative_complex_error": 9.744285695666406e-07,
+      "directed_paths": 212,
+      "max_relative_complex_error": 9.74428542254984e-07,
       "max_length_error_m": 1.7763568394002505e-14,
-      "solve_seconds": 0.43377090000012686,
+      "solve_seconds": 0.09038230000078329,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 161,
-            "max_relative_complex_error": 9.74428569901486e-07,
-            "max_length_error_m": 1.0658141036401503e-14
-          },
-          "launch_matching": {
-            "passed": true,
-            "max_relative_complex_error": 2.7440514942006956e-11,
+            "directed_paths": 212,
+            "max_relative_complex_error": 9.744285419201385e-07,
             "max_length_error_m": 1.4210854715202004e-14
           },
-          "solve_seconds": 0.8483163999999306
+          "launch_matching": {
+            "passed": true,
+            "max_relative_complex_error": 3.3182646581566304e-11,
+            "max_length_error_m": 1.4210854715202004e-14
+          },
+          "solve_seconds": 0.1781026999997266
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 161,
-            "max_relative_complex_error": 9.744285695666406e-07,
+            "directed_paths": 212,
+            "max_relative_complex_error": 9.74428542254984e-07,
             "max_length_error_m": 1.7763568394002505e-14
           },
           "launch_matching": {
@@ -136,113 +98,151 @@
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 0.46932899999956135
+          "solve_seconds": 0.11735499999849708
+        }
+      }
+    },
+    {
+      "case": "C",
+      "passed": true,
+      "directed_paths": 863,
+      "max_relative_complex_error": 1.6382993912457603e-06,
+      "max_length_error_m": 4.973799150320701e-14,
+      "solve_seconds": 0.7618095999969228,
+      "convergence": {
+        "double_launches": {
+          "analytical_comparison": {
+            "passed": true,
+            "directed_paths": 863,
+            "max_relative_complex_error": 1.6382993718732766e-06,
+            "max_length_error_m": 6.394884621840902e-14
+          },
+          "launch_matching": {
+            "passed": true,
+            "max_relative_complex_error": 1.5765727554253746e-10,
+            "max_length_error_m": 8.526512829121202e-14
+          },
+          "solve_seconds": 1.5571139999992738
+        },
+        "extra_reflections": {
+          "analytical_comparison": {
+            "passed": true,
+            "directed_paths": 863,
+            "max_relative_complex_error": 1.6382993912457603e-06,
+            "max_length_error_m": 4.973799150320701e-14
+          },
+          "launch_matching": {
+            "passed": true,
+            "max_relative_complex_error": 0.0,
+            "max_length_error_m": 0.0
+          },
+          "solve_seconds": 0.7885104000015417
         }
       }
     },
     {
       "case": "D",
       "passed": true,
-      "directed_paths": 645,
-      "max_relative_complex_error": 1.6382988858901365e-06,
-      "max_length_error_m": 4.973799150320701e-14,
-      "solve_seconds": 2.9690299000003506,
+      "directed_paths": 22,
+      "max_relative_complex_error": 7.498510946068226e-07,
+      "max_length_error_m": 3.552713678800501e-15,
+      "solve_seconds": 0.0085213999991538,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 645,
-            "max_relative_complex_error": 1.6382995602745544e-06,
-            "max_length_error_m": 4.973799150320701e-14
+            "directed_paths": 22,
+            "max_relative_complex_error": 7.498509409276971e-07,
+            "max_length_error_m": 5.329070518200751e-15
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 1.0532280465064114e-10,
-            "max_length_error_m": 6.394884621840902e-14
+            "max_relative_complex_error": 1.5775400460470228e-11,
+            "max_length_error_m": 3.552713678800501e-15
           },
-          "solve_seconds": 5.994065000000319
+          "solve_seconds": 0.016408199997385964
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 645,
-            "max_relative_complex_error": 1.6382988858901365e-06,
-            "max_length_error_m": 4.973799150320701e-14
+            "directed_paths": 22,
+            "max_relative_complex_error": 7.498510946068226e-07,
+            "max_length_error_m": 3.552713678800501e-15
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 3.037120099999811
+          "solve_seconds": 0.00943820000247797
         }
       }
     },
     {
       "case": "E",
       "passed": true,
-      "directed_paths": 13,
-      "max_relative_complex_error": 7.498509691021951e-07,
-      "max_length_error_m": 3.552713678800501e-15,
-      "solve_seconds": 0.036663299999872834,
+      "directed_paths": 69,
+      "max_relative_complex_error": 1.5003020738374584e-06,
+      "max_length_error_m": 1.4210854715202004e-14,
+      "solve_seconds": 0.058312999997724546,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 13,
-            "max_relative_complex_error": 7.498508118706242e-07,
-            "max_length_error_m": 3.552713678800501e-15
+            "directed_paths": 69,
+            "max_relative_complex_error": 1.5003020738374584e-06,
+            "max_length_error_m": 1.4210854715202004e-14
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 6.172007057358325e-12,
-            "max_length_error_m": 3.552713678800501e-15
+            "max_relative_complex_error": 1.077454901555968e-10,
+            "max_length_error_m": 7.105427357601002e-15
           },
-          "solve_seconds": 0.07320560000016485
+          "solve_seconds": 0.1141819000004034
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 13,
-            "max_relative_complex_error": 7.498509691021951e-07,
-            "max_length_error_m": 3.552713678800501e-15
+            "directed_paths": 69,
+            "max_relative_complex_error": 1.5003020738374584e-06,
+            "max_length_error_m": 1.4210854715202004e-14
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 0.05039729999998599
+          "solve_seconds": 0.06266680000044289
         }
       }
     },
     {
       "case": "F",
       "passed": true,
-      "directed_paths": 45,
-      "max_relative_complex_error": 1.0835520238760362e-06,
+      "directed_paths": 21,
+      "max_relative_complex_error": 1.620898291040467e-06,
       "max_length_error_m": 7.105427357601002e-15,
-      "solve_seconds": 0.4094764999999825,
+      "solve_seconds": 0.010186799998336937,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 45,
-            "max_relative_complex_error": 1.083551964898724e-06,
+            "directed_paths": 21,
+            "max_relative_complex_error": 1.6205624260391207e-06,
             "max_length_error_m": 7.105427357601002e-15
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 2.0524746249594493e-11,
-            "max_length_error_m": 7.105427357601002e-15
+            "max_relative_complex_error": 3.3685612730920405e-10,
+            "max_length_error_m": 3.552713678800501e-15
           },
-          "solve_seconds": 0.8210589999998774
+          "solve_seconds": 0.018197400000644848
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 45,
-            "max_relative_complex_error": 1.0835520238760362e-06,
+            "directed_paths": 21,
+            "max_relative_complex_error": 1.620898291040467e-06,
             "max_length_error_m": 7.105427357601002e-15
           },
           "launch_matching": {
@@ -250,227 +250,227 @@
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 0.4385239000002912
+          "solve_seconds": 0.011453200000687502
         }
       }
     },
     {
       "case": "G",
       "passed": true,
-      "directed_paths": 13,
-      "max_relative_complex_error": 1.6205623647220942e-06,
-      "max_length_error_m": 5.329070518200751e-15,
-      "solve_seconds": 0.039584799999829556,
+      "directed_paths": 248,
+      "max_relative_complex_error": 1.6008536165881152e-06,
+      "max_length_error_m": 4.973799150320701e-14,
+      "solve_seconds": 0.406294300002628,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 13,
-            "max_relative_complex_error": 1.6205628062625577e-06,
-            "max_length_error_m": 5.329070518200751e-15
+            "directed_paths": 248,
+            "max_relative_complex_error": 1.6008536300952196e-06,
+            "max_length_error_m": 4.263256414560601e-14
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 1.1088234630910294e-11,
-            "max_length_error_m": 1.7763568394002505e-15
+            "max_relative_complex_error": 4.687276507230866e-10,
+            "max_length_error_m": 4.973799150320701e-14
           },
-          "solve_seconds": 0.07875830000011774
+          "solve_seconds": 0.7903929999993125
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 13,
-            "max_relative_complex_error": 1.6205623647220942e-06,
-            "max_length_error_m": 5.329070518200751e-15
+            "directed_paths": 248,
+            "max_relative_complex_error": 1.6008536165881152e-06,
+            "max_length_error_m": 4.973799150320701e-14
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 0.057319400000324094
+          "solve_seconds": 0.40760299999965355
         }
       }
     },
     {
       "case": "H",
       "passed": true,
-      "directed_paths": 179,
-      "max_relative_complex_error": 1.600853622877159e-06,
-      "max_length_error_m": 3.552713678800501e-14,
-      "solve_seconds": 2.9115521999997327,
+      "directed_paths": 44,
+      "max_relative_complex_error": 1.6939688613523888e-06,
+      "max_length_error_m": 1.7763568394002505e-14,
+      "solve_seconds": 0.509741000001668,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 179,
-            "max_relative_complex_error": 1.6008536080469337e-06,
-            "max_length_error_m": 2.842170943040401e-14
+            "directed_paths": 44,
+            "max_relative_complex_error": 1.6939706724736455e-06,
+            "max_length_error_m": 1.7763568394002505e-14
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 1.1186634894787086e-10,
-            "max_length_error_m": 4.263256414560601e-14
+            "max_relative_complex_error": 4.0989899666107666e-10,
+            "max_length_error_m": 7.105427357601002e-15
           },
-          "solve_seconds": 5.758961199999703
+          "solve_seconds": 1.024282200000016
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 179,
-            "max_relative_complex_error": 1.600853622877159e-06,
-            "max_length_error_m": 3.552713678800501e-14
+            "directed_paths": 44,
+            "max_relative_complex_error": 1.6939688613523888e-06,
+            "max_length_error_m": 1.7763568394002505e-14
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 3.0458925000002637
+          "solve_seconds": 0.5161546999988786
         }
       }
     },
     {
       "case": "I",
       "passed": true,
-      "directed_paths": 29,
-      "max_relative_complex_error": 1.6939705686930413e-06,
-      "max_length_error_m": 7.105427357601002e-15,
-      "solve_seconds": 0.8335686000000351,
+      "directed_paths": 92,
+      "max_relative_complex_error": 1.7822195274576437e-06,
+      "max_length_error_m": 3.552713678800501e-14,
+      "solve_seconds": 2.075393700000859,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 29,
-            "max_relative_complex_error": 1.6939705686930413e-06,
-            "max_length_error_m": 7.105427357601002e-15
+            "directed_paths": 92,
+            "max_relative_complex_error": 1.7822215750843728e-06,
+            "max_length_error_m": 3.552713678800501e-14
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 4.02012444998692e-10,
-            "max_length_error_m": 7.105427357601002e-15
+            "max_relative_complex_error": 8.949837367036196e-09,
+            "max_length_error_m": 2.842170943040401e-14
           },
-          "solve_seconds": 1.712145800000144
+          "solve_seconds": 4.118780099997821
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 29,
-            "max_relative_complex_error": 1.6939705686930413e-06,
-            "max_length_error_m": 7.105427357601002e-15
+            "directed_paths": 92,
+            "max_relative_complex_error": 1.7822195274576437e-06,
+            "max_length_error_m": 3.552713678800501e-14
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 0.9976971000000958
+          "solve_seconds": 2.0673004999989644
         }
       }
     },
     {
       "case": "J",
       "passed": true,
-      "directed_paths": 59,
-      "max_relative_complex_error": 1.6669038375506097e-06,
-      "max_length_error_m": 2.842170943040401e-14,
-      "solve_seconds": 3.629866900000252,
+      "directed_paths": 165,
+      "max_relative_complex_error": 2.123294733746552e-06,
+      "max_length_error_m": 1.1368683772161603e-13,
+      "solve_seconds": 52.69732859999931,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 59,
-            "max_relative_complex_error": 1.6669026307239202e-06,
-            "max_length_error_m": 3.552713678800501e-14
+            "directed_paths": 165,
+            "max_relative_complex_error": 2.1122790093307215e-06,
+            "max_length_error_m": 1.1368683772161603e-13
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 8.950005525109313e-09,
-            "max_length_error_m": 2.1316282072803006e-14
+            "max_relative_complex_error": 3.329783921158769e-08,
+            "max_length_error_m": 5.684341886080802e-14
           },
-          "solve_seconds": 7.24016070000016
+          "solve_seconds": 112.47145959999762
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 59,
-            "max_relative_complex_error": 1.6669038375506097e-06,
-            "max_length_error_m": 2.842170943040401e-14
+            "directed_paths": 165,
+            "max_relative_complex_error": 2.123294733746552e-06,
+            "max_length_error_m": 1.1368683772161603e-13
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 3.704281599999831
+          "solve_seconds": 52.87443259999782
         }
       }
     },
     {
       "case": "K",
       "passed": true,
-      "directed_paths": 101,
-      "max_relative_complex_error": 1.6057731488892287e-06,
-      "max_length_error_m": 5.684341886080802e-14,
-      "solve_seconds": 10.188704499999858,
+      "directed_paths": 950,
+      "max_relative_complex_error": 1.9166524706386285e-06,
+      "max_length_error_m": 1.5631940186722204e-13,
+      "solve_seconds": 85.55409700000018,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 101,
-            "max_relative_complex_error": 1.6057731488892287e-06,
-            "max_length_error_m": 7.105427357601002e-14
+            "directed_paths": 950,
+            "max_relative_complex_error": 1.8876377495307809e-06,
+            "max_length_error_m": 1.7053025658242404e-13
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 2.8699467075795163e-08,
-            "max_length_error_m": 8.526512829121202e-14
+            "max_relative_complex_error": 3.383547881291518e-08,
+            "max_length_error_m": 2.4158453015843406e-13
           },
-          "solve_seconds": 20.979576199999883
+          "solve_seconds": 168.3545594999996
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 101,
-            "max_relative_complex_error": 1.6057731488892287e-06,
-            "max_length_error_m": 5.684341886080802e-14
+            "directed_paths": 950,
+            "max_relative_complex_error": 1.9166524706386285e-06,
+            "max_length_error_m": 1.5631940186722204e-13
           },
           "launch_matching": {
             "passed": true,
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 10.41547330000003
+          "solve_seconds": 87.44955750000008
         }
       }
     },
     {
       "case": "L",
       "passed": true,
-      "directed_paths": 705,
-      "max_relative_complex_error": 1.6612045999834924e-06,
+      "directed_paths": 252,
+      "max_relative_complex_error": 1.6716744180514403e-06,
       "max_length_error_m": 1.5631940186722204e-13,
-      "solve_seconds": 21.04506110000011,
+      "solve_seconds": 133.12115300000005,
       "convergence": {
         "double_launches": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 705,
-            "max_relative_complex_error": 1.6612181551936042e-06,
-            "max_length_error_m": 1.4210854715202004e-13
+            "directed_paths": 252,
+            "max_relative_complex_error": 1.6716744163392055e-06,
+            "max_length_error_m": 1.5631940186722204e-13
           },
           "launch_matching": {
             "passed": true,
-            "max_relative_complex_error": 3.7204705698730115e-10,
-            "max_length_error_m": 1.9895196601282805e-13
+            "max_relative_complex_error": 7.066435526601393e-08,
+            "max_length_error_m": 1.4210854715202004e-13
           },
-          "solve_seconds": 40.833234300000186
+          "solve_seconds": 269.76345709999805
         },
         "extra_reflections": {
           "analytical_comparison": {
             "passed": true,
-            "directed_paths": 705,
-            "max_relative_complex_error": 1.6612045999834924e-06,
+            "directed_paths": 252,
+            "max_relative_complex_error": 1.6716744180514403e-06,
             "max_length_error_m": 1.5631940186722204e-13
           },
           "launch_matching": {
@@ -478,49 +478,11 @@
             "max_relative_complex_error": 0.0,
             "max_length_error_m": 0.0
           },
-          "solve_seconds": 20.85923300000013
-        }
-      }
-    },
-    {
-      "case": "M",
-      "passed": true,
-      "directed_paths": 159,
-      "max_relative_complex_error": 1.668644594935613e-06,
-      "max_length_error_m": 1.5631940186722204e-13,
-      "solve_seconds": 55.714142300000276,
-      "convergence": {
-        "double_launches": {
-          "analytical_comparison": {
-            "passed": true,
-            "directed_paths": 159,
-            "max_relative_complex_error": 1.668654969162009e-06,
-            "max_length_error_m": 1.4210854715202004e-13
-          },
-          "launch_matching": {
-            "passed": true,
-            "max_relative_complex_error": 3.4332681089350477e-09,
-            "max_length_error_m": 1.8474111129762605e-13
-          },
-          "solve_seconds": 114.87349730000005
-        },
-        "extra_reflections": {
-          "analytical_comparison": {
-            "passed": true,
-            "directed_paths": 159,
-            "max_relative_complex_error": 1.668644594935613e-06,
-            "max_length_error_m": 1.5631940186722204e-13
-          },
-          "launch_matching": {
-            "passed": true,
-            "max_relative_complex_error": 0.0,
-            "max_length_error_m": 0.0
-          },
-          "solve_seconds": 62.293982400000004
+          "solve_seconds": 134.54177600000185
         }
       }
     }
   ],
-  "directed_paths": 2159,
-  "completed_utc": "2026-11-15T17:14:40.449391+00:00"
+  "directed_paths": 2992,
+  "completed_utc": "2026-11-16T15:44:43.882992+00:00"
 }

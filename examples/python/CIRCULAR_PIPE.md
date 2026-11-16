@@ -8,12 +8,12 @@ git clone --branch reproduce https://github.com/SolverNotConverging/RayTracing.g
 cd RayTracing
 ```
 
-## Interactive case B
+## Interactive case A
 
-![Pipe geometry, vector antenna pattern and coherent impulse response](circular_pipe_reference/case_B.png)
+![Pipe geometry, vector antenna pattern and coherent impulse response](circular_pipe_reference/case_A.png)
 
 This example uses the point-ray solver and PyVista/VTK to reproduce the
-manuscript's case B: a PEC pipe of diameter 1 m, a PEC planar reflector 5 m
+manuscript's case A: a PEC pipe of diameter 1 m, a PEC planar reflector 5 m
 below the radar, a 0.3 m radar offset, and a 77 GHz carrier. Tx and Rx are
 colocated at `(0.3, 0, 5)` m. The reflector lies at world `z = 0`.
 
@@ -59,21 +59,29 @@ The same antenna object is used for the simulation and the illustration.
 
 ## Returned rays and impulse response
 
-The solver launches 8000 rays, allows nine total reflections and uses an
-Rx discovery sphere of radius 0.24 m before refining to the point Rx.
-The displayed response retains smooth paths with one planar-reflector hit
-and total length 10–12.5 m (apparent range 5–6.25 m). Paths with singular
-spreading or unresolved rim interactions do not contribute finite fields.
-This produces 41 directed returns in 16 delay groups.
+The solver launches 8000 rays and uses an Rx discovery sphere of radius
+0.24 m before refining to the point Rx. The PEC reflector is unfolded:
+the receiver image is at `(0.3, 0, -5)` m, and the scene contains one exact
+analytical cylinder. Up to eight wall reflections are allowed, corresponding
+to nine reflections after folding the path back across the reflector.
+The displayed response retains paths of total length 10–12.5 m (apparent
+range 5–6.25 m). It contains 54 directed returns in 26 delay groups.
+
+This construction also handles a wall hit at the reflector rim as the two
+simultaneous PEC reflections. The solver independently discovers the path
+and computes its spreading and caustics in the unfolded domain. The image
+Rx orientation applies the PEC polarization transformation; no analytical
+launch directions or fitted field correction are supplied. The returned
+vertices are folded back into the physical pipe for visualization.
 
 `--verify` repeats the calculation with 16000 launches and with an
-11-reflection limit. It checks one-to-one launch-direction matches,
+10-wall-reflection limit (11 including the reflector). It checks one-to-one launch-direction matches,
 path lengths and complex coefficients. No analytical ray list is supplied
 to the shooting solver. Family labels are inferred from the computed
 transverse geometry after solving.
 
 Each impulse tap is the **complex sum** of the directed coefficients at
-that delay; the plot shows the magnitude of this sum. All 41 paths enter
+that delay; the plot shows the magnitude of this sum. All 54 paths enter
 the CIR. The static geometry figure highlights one representative per
 family plus the direct ray, with the other paths faintly visible.
 There is no pulse convolution or fitted gain, phase or delay.
@@ -102,46 +110,48 @@ magnitude = np.abs(data["coefficients_native"])
 print(np.column_stack([delay_ns, magnitude, data["multiplicity"]]))
 ```
 
-## Reproduce all thirteen pipe configurations
+## Reproduce the twelve manuscript configurations
 
 [circular_pipe_validation.py](circular_pipe_validation.py) runs fresh, unseeded
 point-ray SBR solves and compares the directed complex coefficients with the
-archived analytical predictions used in the manuscript. It requires only the
+archived analytical predictions for the twelve configurations reported in the manuscript. It requires only the
 installed RayTracing package and NumPy; no CST files or visualization libraries
-are needed. The geometry uses an analytical cylinder and disk, with normals
-computed from these surfaces. Polygonal meshes are used only for visualization.
+are needed. The propagation scene uses an analytical cylinder and the exact
+PEC-reflector image construction, with normals computed from the cylinder.
+Polygonal meshes are used only for visualization.
 
 From the repository root:
 
 ```sh
 python -m pip install .
 # Quick examples: two depths and two radar offsets.
-python examples/python/circular_pipe_validation.py --cases A B E --verify
+python examples/python/circular_pipe_validation.py --cases A B D --verify
 # Every manuscript configuration, including high reflection orders.
 python examples/python/circular_pipe_validation.py --all --verify --output pipe_all
 # One selected configuration.
-python examples/python/circular_pipe_validation.py --cases M --verify --output pipe_M
+python examples/python/circular_pipe_validation.py --cases L --verify --output pipe_L
 ```
 
-All cases use diameter 1 m, 77 GHz, unit-magnitude omnidirectional vector antennas,
-and retain path lengths between 2d and 2.5d. The reflection limit includes the
-planar reflector. Larger cases require substantially more ray launches.
+The twelve cases span depths 5–40 m and offsets 0.02–0.3 m. All use diameter
+1 m, 77 GHz, unit-magnitude omnidirectional vector antennas,
+and retain path lengths between 2d and 2.5d. The table lists the wall-reflection
+limit in the unfolded scene; the folded physical path also meets the planar
+reflector once. Larger cases require substantially more ray launches.
 
-| Case | Depth d (m) | Offset a (m) | Directed paths | Launches | Reflection limit |
+| Case | Depth d (m) | Offset a (m) | Directed paths | Launches | Wall-reflection limit |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| A | 2 | 0.3 | 9 | 2000 | 4 |
-| B | 5 | 0.3 | 41 | 8000 | 9 |
-| C | 10 | 0.3 | 161 | 32000 | 17 |
-| D | 20 | 0.3 | 645 | 128000 | 38 |
-| E | 5 | 0.1 | 13 | 4000 | 7 |
-| F | 10 | 0.1 | 45 | 16000 | 16 |
-| G | 5 | 0.05 | 13 | 4000 | 7 |
-| H | 20 | 0.1 | 179 | 64000 | 31 |
-| I | 10 | 0.02 | 29 | 32000 | 15 |
-| J | 20 | 0.02 | 59 | 64000 | 31 |
-| K | 30 | 0.02 | 101 | 128000 | 46 |
-| L | 40 | 0.1 | 705 | 256000 | 61 |
-| M | 40 | 0.02 | 159 | 512000 | 61 |
+| A | 5 | 0.3 | 54 | 8000 | 8 |
+| B | 10 | 0.3 | 212 | 32000 | 16 |
+| C | 20 | 0.3 | 863 | 128000 | 37 |
+| D | 5 | 0.1 | 22 | 2000 | 7 |
+| E | 10 | 0.1 | 69 | 8000 | 15 |
+| F | 5 | 0.05 | 21 | 2000 | 7 |
+| G | 20 | 0.1 | 248 | 32000 | 30 |
+| H | 10 | 0.02 | 44 | 32000 | 15 |
+| I | 20 | 0.02 | 92 | 64000 | 30 |
+| J | 30 | 0.02 | 165 | 1024000 | 45 |
+| K | 40 | 0.1 | 950 | 4096000 | 60 |
+| L | 40 | 0.02 | 252 | 2048000 | 60 |
 
 `--verify` repeats each solve with twice as many launches, then with two more
 allowed reflections. Each repeat must recover the reference path count and
@@ -161,7 +171,7 @@ case results remain in the summary if a later case fails.
 ### Analytical-reference provenance
 
 [circular_pipe_reference/cases.json](circular_pipe_reference/cases.json) records
-the source paths, hashes and verification date of the thirteen-case analytical
+the source paths, hashes and verification date of the twelve-case analytical
 comparison in [RayTracingPipe](https://github.com/SolverNotConverging/RayTracingPipe).
 The CSVs are frozen reference data from that completed study, not results generated
 by this example. The runner uses their `theory_real`, `theory_imag`, `delay_ns`
@@ -170,9 +180,9 @@ provenance but are not used as reference fields. It recomputes the SBR side;
 recomputing the analytical side requires the manuscript repository's
 `pipe_solver` and `Manuscript/Revised_Manuscript/experiments` scripts.
 
-The manuscript's original comparison reports 2159 directed paths, maximum relative
-complex-coefficient discrepancy 1.70e-6, and maximum path-length discrepancy
-1.57e-13 m. The tolerances above allow numerical differences across builds.
+The manuscript's comparison reports 2992 directed paths, maximum relative
+complex-coefficient discrepancy 2.12329e-06, and maximum path-length discrepancy
+1.42109e-13 m. The tolerances above allow numerical differences across builds.
 A separate [example verification summary](circular_pipe_reference/validation_summary.json)
 records the fresh verification of this example against those reference fields.
 Reported single-run durations are diagnostics, not a reproduction of the paper's
@@ -180,3 +190,11 @@ five-call median speedup benchmark.
 
 For independent mirror, spreading, caustic and dielectric-interface checks of
 the underlying solver, see the [numerical benchmarks](../../benchmarks/README.md).
+
+The PEC image adapter also has direct checks of vector polarization, radial
+corner reflection, and agreement with the physical cylinder-and-disk scene
+for smooth returns:
+
+```sh
+python examples/python/check_pec_circular_return.py
+```

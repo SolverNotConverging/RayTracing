@@ -57,13 +57,13 @@ reaching the point, projected onto `analyzer` (default x); the tap fields sum to
 
 ### Circular-pipe radar example
 
-The [circular-pipe examples](examples/python/CIRCULAR_PIPE.md) include manuscript case B, which reproduces a 77 GHz,
+The [circular-pipe examples](examples/python/CIRCULAR_PIPE.md) include manuscript case A, which reproduces a 77 GHz,
 1 m diameter PEC pipe with a 5 m reflector distance and a 0.3 m radar offset.
 Its linked VTK view shows the antenna frame, far-field magnitude and polarization,
 returned rays, and coherent impulse response. Run
 `python examples/python/circular_pipe.py --verify`; add `--no-show` to export
 figures, complex taps and VTK geometry without opening a window.
-A numerical runner covers all thirteen manuscript configurations, compares fresh SBR
+A numerical runner covers all twelve manuscript configurations, compares fresh SBR
 fields with the archived analytical references, and checks launch/reflection convergence:
 `python examples/python/circular_pipe_validation.py --all --verify`.
 
@@ -102,6 +102,12 @@ C++ and Python programs.
 
 See the [numerical benchmark guide](benchmarks/README.md) for tested geometries,
 VTK illustrations, analytical references, reproduction commands and saved outputs.
+
+The [pipe-geometry examples](examples/python/PIPE_GEOMETRY.rst) compute isolated
+returns in tilted, square, elliptical, stepped-bore, and horizontal pipes.
+`EllipticCylinder` and `Annulus` provide exact intersection geometry and surface
+curvature for point-ray calculations. The guide explains the endpoint-Jacobian
+condition for discrete returns and the continuous family at an ellipse focus.
 
 ## Model notes
 

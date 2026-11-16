@@ -38,7 +38,8 @@ namespace rt {
         }
 
         bool curved(const Surface &surface) {
-            return std::holds_alternative<Sphere>(surface) || std::holds_alternative<Cylinder>(surface);
+            return std::holds_alternative<Sphere>(surface) || std::holds_alternative<Cylinder>(surface) ||
+                   std::holds_alternative<EllipticCylinder>(surface);
         }
 
         std::vector<std::size_t> sequence_of(const SequenceEvaluation &geometry) {

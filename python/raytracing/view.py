@@ -23,6 +23,16 @@ def _mesh(pv, shape, resolution=48):
     if isinstance(shape, _core.Cylinder):
         return pv.Cylinder(center=shape.center, direction=shape.axis, radius=shape.radius,
                            height=2 * shape.half_length, resolution=resolution, capping=shape.capped)
+    if isinstance(shape, _core.EllipticCylinder):
+        mesh = pv.Cylinder(center=(0, 0, 0), direction=(0, 0, 1), radius=1,
+                           height=2 * shape.half_length, resolution=resolution, capping=shape.capped)
+        basis = np.column_stack([shape.radius_u * shape.u,
+                                 shape.radius_v * np.cross(shape.axis, shape.u), shape.axis])
+        mesh.points = np.asarray(mesh.points) @ basis.T + shape.center
+        return mesh
+    if isinstance(shape, _core.Annulus):
+        return pv.Disc(center=shape.center, normal=shape.normal, inner=shape.inner_radius,
+                       outer=shape.outer_radius, c_res=resolution)
     if isinstance(shape, _core.Disk):
         return pv.Disc(center=shape.center, normal=shape.normal, inner=0, outer=shape.radius, c_res=resolution)
     if isinstance(shape, _core.Rectangle):

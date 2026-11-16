@@ -15,6 +15,7 @@ import time
 import numpy as np
 import raytracing as rt
 import raytracing._core as core
+from pec_circular_return import solve_pec_circular_return
 
 REFERENCE = Path(__file__).with_name('circular_pipe_reference')
 ORIENTATION = np.array([[0., 0., 1.], [0., 1., 0.], [-1., 0., 0.]])
@@ -26,30 +27,14 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def scene_and_ports(case):
-    radius, depth, offset = (case[k] for k in ('radius_m', 'depth_m', 'offset_m'))
-    scene = rt.Scene()
-    # Analytical surfaces in the solver, not the polygonal display meshes.
-    scene.add(rt.Cylinder([0, 0, (depth + .02) / 2], [0, 0, 1],
-                          radius, (depth + .02) / 2, False), rt.Material.pec())
-    scene.add(rt.Disk([0, 0, 0], [0, 0, 1], radius), rt.Material.pec())
-    antenna = rt.Antenna(rt.Isotropic(rt.Polarization.VERTICAL, 1 + 0j))
-    antenna.orientation = ORIENTATION
-    position = [offset, 0, depth]
-    return scene, rt.Transmitter(position, antenna), rt.Receiver(position, antenna)
-
-
 def solve_case(case, launches, reflections):
-    scene, tx, rx = scene_and_ports(case)
-    radius, depth = case['radius_m'], case['depth_m']
+    radius, depth, offset = (case[k] for k in ('radius_m', 'depth_m', 'offset_m'))
     started = time.perf_counter()
-    result = rt.solve(scene, tx, rx, rt.SolverConfig(
-        frequency_hz=77e9, ray_count=launches, max_reflections=reflections,
-        max_distance=2.5 * depth + .48 * radius, reception_radius=.48 * radius))
+    result = solve_pec_circular_return(rt, depth, radius, offset, 77e9, launches,
+                                      reflections, 2.5*depth, .48*radius)
     elapsed = time.perf_counter() - started
     paths = [p for p in result.paths if p.field is not None
-             and 2 * depth - 1e-10 <= p.field.path_length <= 2.5 * depth + 1e-10
-             and sum(h.surface_index == 1 for h in p.refinement.geometry.reflections) == 1]
+             and 2*depth-1e-10 <= p.field.path_length <= 2.5*depth+1e-10]
     return sorted(paths, key=lambda p: (p.field.path_length, *p.refinement.launch_direction)), elapsed
 
 
@@ -143,16 +128,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument('--cases', nargs='+', choices=list(cases), default=None)
-    selection.add_argument('--all', action='store_true', help='Run all thirteen manuscript configurations')
+    selection.add_argument('--all', action='store_true', help='Run all twelve manuscript configurations')
     parser.add_argument('--verify', action='store_true', help='Also double launches and add two reflections')
     parser.add_argument('--output', type=Path, default=Path('circular_pipe_validation_output'))
     args = parser.parse_args()
-    selected = list(cases) if args.all else (args.cases or ['A', 'B', 'E'])
+    selected = list(cases) if args.all else (args.cases or ['A', 'B', 'D'])
     args.output.mkdir(parents=True, exist_ok=True)
     report = dict(passed=False, utc=datetime.now(timezone.utc).isoformat(),
                   python=platform.python_version(), platform=platform.platform(),
                   solver_version=rt.__version__, solver_binary_sha256=digest(core.__file__),
-                  script_sha256=digest(__file__), reference_catalog_sha256=digest(REFERENCE / 'cases.json'),
+                  script_sha256=digest(__file__), adapter_sha256=digest(Path(__file__).with_name('pec_circular_return.py')), reference_catalog_sha256=digest(REFERENCE / 'cases.json'),
                   convergence_requested=args.verify, selected_cases=selected,
                   comparison='Fresh SBR solves against frozen analytical fields; no fitted field scale or phase',
                   reference_phasor='exp(+i omega t)', results=[])

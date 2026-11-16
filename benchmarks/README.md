@@ -7,6 +7,12 @@ public Python beam API. They do not measure execution speed.
 
 ## Geometry overview
 
+The additional [pipe geometry examples](../examples/python/PIPE_GEOMETRY.rst)
+check receiver closure, specular reflection and nonsingular endpoint Jacobians
+for five alternative geometries. Native test `geometry_extensions` independently
+checks elliptical intersection normals, the circular limit, curvature by finite
+differences, focal closure with length `4a`, and annular opening bounds.
+
 ![Benchmark geometry sections rendered with VTK](figures/geometries.png)
 
 Blue indicates incident rays or the Gaussian envelope, orange reflected paths,
@@ -156,10 +162,10 @@ point-ray caustics are undefined and are rejected by the diagnostic checks.
 ## Circular-pipe manuscript examples
 
 The [circular-pipe guide](../examples/python/CIRCULAR_PIPE.md) provides an
-interactive case-B scene and a numerical runner for thirteen PEC pipe
-configurations. The numerical examples cover depths from 2 to 40 m and offsets
-from 0.02 to 0.3 m at 77 GHz. The solver intersects analytical cylinder and disk
-surfaces, discovers paths by unseeded shooting, refines them to the receiver,
+interactive case-A scene and a numerical runner for twelve PEC pipe
+configurations. The numerical examples cover depths from 5 to 40 m and offsets
+from 0.02 to 0.3 m at 77 GHz. The solver uses analytical cylinder intersections
+and a PEC-reflector image construction, discovers paths by unseeded shooting, refines them to the receiver,
 and computes coherent fields with spreading and caustic phase.
 
 Run `python examples/python/circular_pipe_validation.py --all --verify` from the

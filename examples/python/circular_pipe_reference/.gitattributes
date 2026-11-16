@@ -1,2 +1,3 @@
 # Preserve archived CSV bytes and accept their CRLF record endings.
 *.csv -text whitespace=cr-at-eol
+*.json text eol=lf

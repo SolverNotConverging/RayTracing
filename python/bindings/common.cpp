@@ -33,6 +33,17 @@ void bind_common(py::module_ &m) {
             .def_readwrite("center", &Cylinder::center).def_readwrite("axis", &Cylinder::axis)
             .def_readwrite("radius", &Cylinder::radius).def_readwrite("half_length", &Cylinder::halfLength)
             .def_readwrite("capped", &Cylinder::capped);
+    py::class_<EllipticCylinder>(m, "EllipticCylinder", "Finite elliptic cylinder; u and axis are perpendicular unit vectors.")
+            .def(py::init<Vec3, Vec3, Vec3, double, double, double, bool>(), "center"_a, "axis"_a,
+                 "u"_a, "radius_u"_a, "radius_v"_a, "half_length"_a, "capped"_a = true)
+            .def_readwrite("center", &EllipticCylinder::center).def_readwrite("axis", &EllipticCylinder::axis)
+            .def_readwrite("u", &EllipticCylinder::u).def_readwrite("radius_u", &EllipticCylinder::radiusU)
+            .def_readwrite("radius_v", &EllipticCylinder::radiusV).def_readwrite("half_length", &EllipticCylinder::halfLength)
+            .def_readwrite("capped", &EllipticCylinder::capped);
+    py::class_<Annulus>(m, "Annulus", "Planar circular ring, including its inner and outer boundaries.")
+            .def(py::init<Vec3, Vec3, double, double>(), "center"_a, "normal"_a, "inner_radius"_a, "outer_radius"_a)
+            .def_readwrite("center", &Annulus::center).def_readwrite("normal", &Annulus::normal)
+            .def_readwrite("inner_radius", &Annulus::innerRadius).def_readwrite("outer_radius", &Annulus::outerRadius);
     py::class_<Triangle>(m, "Triangle")
             .def(py::init<Vec3, Vec3, Vec3>(), "a"_a, "b"_a, "c"_a)
             .def_readwrite("a", &Triangle::a).def_readwrite("b", &Triangle::b).def_readwrite("c", &Triangle::c);

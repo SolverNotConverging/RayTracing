@@ -1,5 +1,5 @@
 {
-  "case": "B",
+  "case": "A",
   "frequency_hz": 77000000000.0,
   "radius_m": 0.5,
   "depth_m": 5.0,
@@ -22,22 +22,23 @@
     ]
   ],
   "ray_count": 8000,
-  "max_reflections": 9,
+  "max_reflections": 8,
+  "total_reflection_limit": 9,
   "reception_radius_m": 0.24,
   "path_length_window_m": [
     10.0,
     12.5
   ],
-  "directed_paths": 41,
-  "delay_groups": 16,
+  "directed_paths": 54,
+  "delay_groups": 26,
   "verification": {
     "16000_launches": {
-      "paths": 41,
-      "max_length_error_m": 5.329070518200751e-15,
-      "max_relative_complex_error": 1.3601666562528491e-11
+      "paths": 54,
+      "max_length_error_m": 3.552713678800501e-15,
+      "max_relative_complex_error": 7.85218090806059e-12
     },
-    "11_reflections": {
-      "paths": 41,
+    "10_wall_reflections": {
+      "paths": 54,
       "max_length_error_m": 0.0,
       "max_relative_complex_error": 0.0
     }
@@ -45,5 +46,6 @@
   "raytracing_version": "1.0.1",
   "python": "3.14.5",
   "phasor_convention": "native exp(-i omega t); conjugate coefficients for manuscript",
-  "script_sha256": "32783b53462ffe0d780377ee51792b5182c183b9d05cf9e3ddde89f22b4aef58"
+  "script_sha256": "208b49880226d1b22384b86760ed18acc04978a81381f4d67b67ff34b4c389a8",
+  "adapter_sha256": "4a9df796a078d557dfbb88ef227db94a5c44a462353f62d051e474add47968a3"
 }

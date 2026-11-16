@@ -36,6 +36,19 @@ namespace rt {
                     "Cylinder needs a finite centre, unit axis and positive radius and half length");
         }
 
+        void check(const EllipticCylinder &s) {
+            require(s.center.allFinite() && unit(s.axis) && unit(s.u) &&
+                    std::abs(s.axis.dot(s.u)) <= 1e-10 && positive(s.radiusU) &&
+                    positive(s.radiusV) && positive(s.halfLength),
+                    "EllipticCylinder needs perpendicular unit axes and positive radii and half length");
+        }
+
+        void check(const Annulus &s) {
+            require(s.center.allFinite() && unit(s.normal) && std::isfinite(s.innerRadius) &&
+                    s.innerRadius >= 0 && positive(s.outerRadius) && s.innerRadius < s.outerRadius,
+                    "Annulus needs a finite centre, unit normal and 0 <= inner radius < outer radius");
+        }
+
         void check(const Triangle &s) {
             const Vec3 ab = s.b - s.a, ac = s.c - s.a;
             require(s.a.allFinite() && s.b.allFinite() && s.c.allFinite() &&
@@ -139,6 +152,49 @@ namespace rt {
         return nearest;
     }
 
+    std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const EllipticCylinder &s,
+                                 double tMin, double tMax) {
+        const Vec3 offset = origin - s.center, v = s.axis.cross(s.u);
+        const double z = offset.dot(s.axis), dz = direction.dot(s.axis);
+        const Eigen::Vector2d q(offset.dot(s.u)/s.radiusU, offset.dot(v)/s.radiusV);
+        const Eigen::Vector2d w(direction.dot(s.u)/s.radiusU, direction.dot(v)/s.radiusV);
+        std::optional<Hit> nearest;
+        auto consider = [&](double t, const Vec3 &normal) {
+            if (in_range(t,tMin,tMax) && (!nearest || t < nearest->distance)) nearest = Hit{t,normal};
+        };
+        if (s.capped && std::abs(dz) >= angularTolerance) {
+            for (double side : {-1.0,1.0}) {
+                const double t = (side*s.halfLength-z)/dz;
+                if ((q+t*w).norm() <= 1+edgeTolerance/std::min(s.radiusU,s.radiusV))
+                    consider(t,side*s.axis);
+            }
+        }
+        const double a = w.squaredNorm();
+        if (a > 0) {
+            const double middle = -q.dot(w)/a;
+            const double halfSquared = (1-(q+middle*w).squaredNorm())/a;
+            if (halfSquared >= 0) {
+                const double half = std::sqrt(halfSquared);
+                for (double t : {middle-half,middle+half}) {
+                    if (std::abs(z+t*dz) > s.halfLength) continue;
+                    const Eigen::Vector2d h = q+t*w;
+                    consider(t,(h.x()/s.radiusU*s.u+h.y()/s.radiusV*v).normalized());
+                }
+            }
+        }
+        return nearest;
+    }
+
+    std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const Annulus &s,
+                                 double tMin, double tMax) {
+        const auto t = plane_distance(origin,direction,s.center,s.normal,tMin,tMax);
+        if (!t) return std::nullopt;
+        const double radius = (origin+*t*direction-s.center).norm();
+        if (radius < s.innerRadius-edgeTolerance || radius > s.outerRadius+edgeTolerance)
+            return std::nullopt;
+        return Hit{*t,s.normal};
+    }
+
     std::optional<Hit> intersect(const Vec3 &origin, const Vec3 &direction, const Triangle &s, double tMin,
                                  double tMax) {
         const Vec3 ab = s.b - s.a, ac = s.c - s.a;
@@ -210,6 +266,10 @@ namespace rt {
                 const Vec3 v = p - s.center;
                 const double a = v.dot(s.axis);
                 return std::abs(a) < s.halfLength && (v - a * s.axis).norm() < s.radius;
+            } else if constexpr (std::is_same_v<T, EllipticCylinder>) {
+                const Vec3 q = p-s.center, v = s.axis.cross(s.u);
+                return std::abs(q.dot(s.axis)) < s.halfLength &&
+                       std::hypot(q.dot(s.u)/s.radiusU,q.dot(v)/s.radiusV) < 1;
             } else return false;
         }, shape);
     }
@@ -221,10 +281,22 @@ namespace rt {
                 const Vec3 v = p - s.center;
                 return std::min(s.halfWidth - std::abs(v.dot(s.u)), s.halfHeight - std::abs(v.dot(s.v)));
             } else if constexpr (std::is_same_v<T, Disk>) return s.radius - (p - s.center).norm();
+            else if constexpr (std::is_same_v<T, Annulus>) {
+                const double radius = (p-s.center).norm();
+                return s.innerRadius > 0 ? std::min(radius-s.innerRadius,s.outerRadius-radius)
+                                         : s.outerRadius-radius;
+            }
             else if constexpr (std::is_same_v<T, Cylinder>) {
                 const Vec3 v = p - s.center;
                 const double axial = v.dot(s.axis);
                 return std::hypot(s.halfLength - std::abs(axial), s.radius - (v - axial * s.axis).norm());
+            } else if constexpr (std::is_same_v<T, EllipticCylinder>) {
+                const Vec3 q = p-s.center, v = s.axis.cross(s.u);
+                const double radial = std::hypot(q.dot(s.u)/s.radiusU,q.dot(v)/s.radiusV);
+                // The smallest singular value of the ellipse scaling gives a
+                // conservative edge distance on caps, exact axially on the wall.
+                return std::hypot(s.halfLength-std::abs(q.dot(s.axis)),
+                                  std::min(s.radiusU,s.radiusV)*(1-radial));
             } else if constexpr (std::is_same_v<T, Triangle>) {
                 const auto edge = [&](const Vec3 &a, const Vec3 &b) { return (b - a).cross(p - a).norm() / (b - a).norm(); };
                 return std::min({edge(s.a, s.b), edge(s.b, s.c), edge(s.c, s.a)});
@@ -246,6 +318,18 @@ namespace rt {
                     return sign(outward.dot(normal)) *
                            (Eigen::Matrix3d::Identity() - s.axis * s.axis.transpose() - outward * outward.transpose()) /
                            s.radius;
+                }
+            } else if constexpr (std::is_same_v<T, EllipticCylinder>) {
+                if (std::abs(normal.dot(s.axis)) < 0.5) {
+                    const Vec3 q = p-s.center, v = s.axis.cross(s.u);
+                    const Eigen::Matrix3d h = s.u*s.u.transpose()/(s.radiusU*s.radiusU) +
+                                              v*v.transpose()/(s.radiusV*s.radiusV);
+                    const Vec3 gradient = h*q;
+                    if (gradient.norm() > 0) {
+                        const Vec3 outward = gradient.normalized();
+                        const Eigen::Matrix3d projection = Eigen::Matrix3d::Identity()-outward*outward.transpose();
+                        return sign(outward.dot(normal))*projection*h*projection/gradient.norm();
+                    }
                 }
             }
             return Eigen::Matrix3d::Zero();

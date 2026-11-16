@@ -28,6 +28,9 @@ namespace {
     bool touches_cylinder_rim(const SequenceEvaluation &geometry, const std::vector<Surface> &surfaces,
                               double tolerance) {
         for (const auto &hit: geometry.reflections) {
+            if (std::holds_alternative<EllipticCylinder>(surfaces.at(hit.surfaceIndex)) &&
+                edge_distance(surfaces.at(hit.surfaceIndex),hit.position) <= tolerance)
+                return true;
             const auto *cylinder = std::get_if<Cylinder>(&surfaces.at(hit.surfaceIndex));
             if (!cylinder) continue;
             const Vec3 offset = hit.position - cylinder->center;

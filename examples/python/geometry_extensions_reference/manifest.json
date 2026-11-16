@@ -1,0 +1,89 @@
+{
+  "frequency_hz": 77000000000.0,
+  "ray_count": 16000,
+  "max_reflections": 8,
+  "max_distance_m": 7,
+  "reception_radius_m": 0.15,
+  "material": "PEC geometry demonstration",
+  "script_sha256": "acd6b57c1385be4f3e50fa7bbd5fc68b9f22666dbb4c23c6b6dd9ee267d35c91",
+  "core_sha256": "9c10e2c83763c63f9672ccbc4ea4a9cebb1413e9d33fdd8ecda5a5b75bc3d441",
+  "raytracing_version": "1.0.1",
+  "python": "3.14.5",
+  "cases": [
+    {
+      "name": "tilted",
+      "source_m": [
+        0.26922159822067293,
+        0.07,
+        1.5843041788278875
+      ],
+      "liquid_surface_index": 1,
+      "valid_liquid_return_count": 28,
+      "shown_indices": [
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "name": "square",
+      "source_m": [
+        0.13,
+        0.07,
+        1.6
+      ],
+      "liquid_surface_index": 4,
+      "valid_liquid_return_count": 25,
+      "shown_indices": [
+        0,
+        1,
+        3
+      ]
+    },
+    {
+      "name": "ellipse",
+      "source_m": [
+        0.13,
+        0.07,
+        1.6
+      ],
+      "liquid_surface_index": 1,
+      "valid_liquid_return_count": 24,
+      "shown_indices": [
+        0,
+        1,
+        5
+      ]
+    },
+    {
+      "name": "bore_step",
+      "source_m": [
+        0.08,
+        0.06,
+        1.7
+      ],
+      "liquid_surface_index": 3,
+      "valid_liquid_return_count": 13,
+      "shown_indices": [
+        0,
+        1,
+        5
+      ]
+    },
+    {
+      "name": "horizontal",
+      "source_m": [
+        0.0,
+        0.3,
+        0.32
+      ],
+      "liquid_surface_index": 1,
+      "valid_liquid_return_count": 219,
+      "shown_indices": [
+        0,
+        5,
+        7
+      ]
+    }
+  ]
+}

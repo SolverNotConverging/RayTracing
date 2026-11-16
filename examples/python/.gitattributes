@@ -1,0 +1,3 @@
+# Preserve script and provenance hashes across platforms.
+*.py text eol=lf
+*.json text eol=lf
